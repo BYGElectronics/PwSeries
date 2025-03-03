@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:pw/src/Controller/home_controller.dart';
 import 'package:pw/src/Controller/config_controller.dart';
 import 'package:pw/src/pages/control_screen.dart';
@@ -24,7 +25,7 @@ class _MyAppState extends State<MyApp> {
   void _toggleTheme() {
     setState(() {
       _themeMode =
-      _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+          _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     });
   }
 
@@ -45,15 +46,21 @@ class _MyAppState extends State<MyApp> {
       routes: {
         "splash": (context) => const SplashScreen(),
         "home": (context) => HomeScreen(
-          toggleTheme: _toggleTheme, // Alternar tema
-          themeMode: _themeMode,
-        ),
+              toggleTheme: _toggleTheme, // Alternar tema
+              themeMode: _themeMode,
+            ),
         "config": (context) => ConfigScreen(controller: _configController),
-        "control": (context) => ControlScreen(
-          connectedDevice:
-          ModalRoute.of(context)?.settings.arguments as String? ??
-              "Dispositivo anfoasf",
-        ),
+        "control": (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is BluetoothDevice) {
+            return ControlScreen(connectedDevice: args);
+          } else {
+            return HomeScreen(
+              toggleTheme: _toggleTheme,
+              themeMode: _themeMode,
+            );
+          }
+        },
       },
     );
   }

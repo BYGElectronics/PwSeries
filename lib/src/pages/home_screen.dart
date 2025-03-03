@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:pw/src/Controller/home_controller.dart';
+import 'package:pw/src/pages/control_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -138,17 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         final device = devices[index].device;
                         return Column(
                           children: [
-                            _deviceCard(
-                                device.platformName.isNotEmpty ? device.platformName : "Dispositivo Desconocido",
-                                device.remoteId.toString(),
-                                    () {
-                                  _controller.connectToDevice(device);
-                                },
-                                    () {
-                                  _controller.disconnectDevice();
-                                },
-                                _controller.connectedDeviceName.value == device.platformName
-                            ),
+                            _buildDeviceCard(device),
                           ],
                         );
                       },
@@ -163,7 +154,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _deviceCard(String name, String id, VoidCallback onConnect, VoidCallback onDisconnect, bool isConnected) {
+  Widget _buildDeviceCard(BluetoothDevice device) {
+    bool isConnected = _controller.connectedDeviceName.value == device.platformName;
     return Card(
       color: Colors.white10,
       shape: RoundedRectangleBorder(
@@ -176,50 +168,43 @@ class _HomeScreenState extends State<HomeScreen> {
           ListTile(
             leading: const Icon(Icons.bluetooth, color: Colors.white, size: 30),
             title: Text(
-              name.isNotEmpty ? name : "Dispositivo Desconocido",
+              device.platformName.isNotEmpty ? device.platformName : "Dispositivo Desconocido",
               style: const TextStyle(fontSize: 18, color: Colors.white),
             ),
             subtitle: Text(
-              id,
+              device.remoteId.toString(),
               style: const TextStyle(fontSize: 14, color: Colors.white70),
             ),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: isConnected ? null : onConnect,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isConnected ? Colors.green : Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  isConnected ? "Conectado" : "Conectar",
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+          if (!isConnected)
+            ElevatedButton(
+              onPressed: () => _controller.connectToDevice(device),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              if (isConnected)
-                const SizedBox(width: 10),
-              if (isConnected)
-                ElevatedButton(
-                  onPressed: onDisconnect,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text("Desconectar", style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-            ],
-          ),
-          if (isConnected)
+              child: const Text("Conectar", style: TextStyle(color: Colors.white, fontSize: 16)),
+            ),
+          if (isConnected) ...[
             ElevatedButton(
-              onPressed: () {
-                _controller.navigateToControl(context);
-              },
+              onPressed: () => _controller.disconnectDevice(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text("Desconectar", style: TextStyle(color: Colors.white, fontSize: 16)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ControlScreen(connectedDevice: device),
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 shape: RoundedRectangleBorder(
@@ -228,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: const Text("Acceder al Control", style: TextStyle(color: Colors.white, fontSize: 16)),
             ),
+          ],
         ],
       ),
     );

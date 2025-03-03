@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-
 import '../Controller/control_controller.dart';
 
 class ControlScreen extends StatefulWidget {
@@ -19,8 +18,10 @@ class _ControlScreenState extends State<ControlScreen> {
   @override
   void initState() {
     super.initState();
-    // ✅ Pasar el objeto correcto al controlador
-    _controller.setDevice(widget.connectedDevice);
+    // ✅ Pasar el objeto correcto al controlador y asegurar la conexión
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.setDevice(widget.connectedDevice);
+    });
   }
 
   @override
@@ -64,7 +65,8 @@ class _ControlScreenState extends State<ControlScreen> {
                 _controlButton("Sirena", _controller.activateSiren, Colors.red),
 
                 // 🔦 Botón Auxiliar
-                _controlButton("Auxiliar", _controller.activateAux, Colors.orange),
+                _controlButton(
+                    "Auxiliar", _controller.activateAux, Colors.orange),
 
                 // 📢 Botón Horn
                 _controlButton("Horn", _controller.activateHorn, Colors.blue),
@@ -73,7 +75,8 @@ class _ControlScreenState extends State<ControlScreen> {
                 _controlButton("Wail", _controller.activateWail, Colors.purple),
 
                 // 🎤 Botón Intercom
-                _controlButton("Intercom", _controller.activateInter, Colors.green),
+                _controlButton(
+                    "Intercom", _controller.activateInter, Colors.green),
 
                 // 🎙 Botón PTT
                 _controlButton("PTT", _controller.activatePTT, Colors.teal),
@@ -81,7 +84,8 @@ class _ControlScreenState extends State<ControlScreen> {
                 const SizedBox(height: 20),
 
                 // 🔄 Solicitar estado del sistema
-                _controlButton("Estado del Sistema", _controller.requestSystemStatus, Colors.blueGrey),
+                _controlButton("Estado del Sistema",
+                    _controller.requestSystemStatus, Colors.blueGrey),
 
                 const SizedBox(height: 30),
 
@@ -97,7 +101,8 @@ class _ControlScreenState extends State<ControlScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text("Desconectar", style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: const Text("Desconectar",
+                      style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ],
             ),
@@ -120,7 +125,8 @@ class _ControlScreenState extends State<ControlScreen> {
             borderRadius: BorderRadius.circular(10),
           ),
         ),
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 18)),
+        child: Text(label,
+            style: const TextStyle(color: Colors.white, fontSize: 18)),
       ),
     );
   }
