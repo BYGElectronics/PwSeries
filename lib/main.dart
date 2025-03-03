@@ -52,7 +52,7 @@ class _MyAppState extends State<MyApp> {
         "control": (context) => ControlScreen(
           connectedDevice:
           ModalRoute.of(context)?.settings.arguments as String? ??
-              "Dispositivo",
+              "Dispositivo anfoasf",
         ),
       },
     );
