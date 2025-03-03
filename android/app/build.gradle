@@ -1,0 +1,44 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // Flutter Gradle Plugin debe ser aplicado después de los plugins de Android y Kotlin.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.bygelectronics.pw" // El nombre único de tu aplicación.
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8" // Configuración para Kotlin.
+    }
+
+    defaultConfig {
+        applicationId = "com.bygelectronics.pw" // ID único de tu aplicación.
+        minSdk = flutter.minSdkVersion // Versión mínima soportada por Flutter.
+        targetSdk = flutter.targetSdkVersion // Versión objetivo soportada por Flutter.
+        versionCode = flutter.versionCode // Versión del código.
+        versionName = flutter.versionName // Versión del nombre.
+    }
+
+    buildTypes {
+        release {
+            // Configuración para la construcción en release.
+            signingConfig = signingConfigs.debug
+
+            // Desactivar ProGuard y shrinkResources para evitar problemas.
+            minifyEnabled false
+            shrinkResources false // Desactiva la eliminación de recursos no utilizados.
+        }
+    }
+}
+
+flutter {
+    source = "../.." // Fuente del proyecto Flutter.
+}
