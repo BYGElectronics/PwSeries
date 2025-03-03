@@ -1,6 +1,7 @@
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:async';
 
 class ControlController {
   BluetoothDevice? connectedDevice;
@@ -20,9 +21,10 @@ class ControlController {
     for (var service in services) {
       for (var characteristic in service.characteristics) {
         debugPrint("🔍 Característica encontrada: ${characteristic.uuid}");
-        if (characteristic.properties.write) {
+        if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
           targetCharacteristic = characteristic;
           debugPrint("✅ Característica de escritura seleccionada: ${characteristic.uuid}");
+          enableNotifications();
           return;
         }
       }
@@ -30,14 +32,16 @@ class ControlController {
     debugPrint("⚠️ No se encontró característica de escritura en los servicios BLE.");
   }
 
-  /// **Enviar Comando BLE**
+  /// **Enviar Comando BLE** con delay y ajuste de escritura
   Future<void> sendCommand(List<int> command) async {
     if (targetCharacteristic == null) {
       debugPrint("❌ No hay característica de escritura disponible.");
       return;
     }
     try {
-      await targetCharacteristic!.write(command, withoutResponse: false);
+      await Future.delayed(const Duration(milliseconds: 100)); // Delay para estabilidad
+      bool useWithoutResponse = targetCharacteristic!.properties.writeWithoutResponse;
+      await targetCharacteristic!.write(command, withoutResponse: useWithoutResponse);
       debugPrint("📡 Comando enviado: ${command.map((e) => e.toRadixString(16)).join(' ')}");
     } catch (e) {
       debugPrint("❌ Error enviando comando: $e");
@@ -69,7 +73,7 @@ class ControlController {
     return frame;
   }
 
-  /// **Funciones de botones con protocolos**
+  /// 🔊 **Activar funciones del hardware con comandos BLE**
   void activateSiren() {
     sendCommand(buildCommand([0x14, 0x07, 0x44]));
   }
@@ -82,21 +86,38 @@ class ControlController {
     sendCommand(buildCommand([0x14, 0x09, 0x44]));
   }
 
-  void activateWail() {
+  void activateInter() {
     sendCommand(buildCommand([0x14, 0x10, 0x44]));
   }
 
-  void activateInter() {
+  void activatePTT() {
     sendCommand(buildCommand([0x14, 0x12, 0x44]));
   }
 
-  void activatePTT() {
+  void activateWail() {
     sendCommand(buildCommand([0x14, 0x11, 0x44]));
   }
 
-  /// **Solicitar Estado del Sistema**
+  /// 🔄 **Solicitar estado del sistema**
   void requestSystemStatus() {
     sendCommand(buildCommand([0x14, 0x18, 0x44]));
+  }
+
+  /// **Leer respuesta del hardware (Notificaciones BLE)**
+  void enableNotifications() {
+    if (targetCharacteristic != null && targetCharacteristic!.properties.notify) {
+      targetCharacteristic!.setNotifyValue(true);
+      targetCharacteristic!.value.listen((response) {
+        try {
+          String hexResponse = response.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+          debugPrint("📡 Respuesta del hardware en HEX: $hexResponse");
+        } catch (e) {
+          debugPrint("⚠️ Error procesando respuesta del hardware: $e");
+        }
+      });
+    } else {
+      debugPrint("⚠️ La característica no soporta notificaciones.");
+    }
   }
 
   /// **Desconectar Dispositivo**
