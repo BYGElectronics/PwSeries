@@ -7,9 +7,12 @@ class ControlController {
   BluetoothDevice? connectedDevice;
   BluetoothCharacteristic? targetCharacteristic;
 
+  bool isConnected = false; // Estado de conexión
+
   /// Configurar dispositivo conectado
   void setDevice(BluetoothDevice device) async {
     connectedDevice = device;
+    isConnected = true;
     await _discoverServices();
   }
 
@@ -42,7 +45,7 @@ class ControlController {
       await Future.delayed(const Duration(milliseconds: 100)); // Delay para estabilidad
       bool useWithoutResponse = targetCharacteristic!.properties.writeWithoutResponse;
       await targetCharacteristic!.write(command, withoutResponse: useWithoutResponse);
-      debugPrint("📡 Comando enviado: ${command.map((e) => e.toRadixString(16)).join(' ')}");
+      debugPrint("📡 Comando enviado: ${command.map((e) => e.toRadixString(16).padLeft(2, '0')).join(' ')}");
     } catch (e) {
       debugPrint("❌ Error enviando comando: $e");
     }
@@ -126,6 +129,7 @@ class ControlController {
       await connectedDevice!.disconnect();
       debugPrint("🔌 Dispositivo desconectado.");
       connectedDevice = null;
+      isConnected = false; // Habilitar botón de búsqueda nuevamente
     }
   }
 }

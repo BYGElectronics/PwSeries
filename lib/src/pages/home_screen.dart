@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:pw/src/Controller/home_controller.dart';
-import 'package:pw/src/pages/control_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -74,54 +73,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Activando Bluetooth...")),
+              ValueListenableBuilder<bool>(
+                valueListenable: _controller.isConnected,
+                builder: (context, isConnected, child) {
+                  return Column(
+                    children: [
+                      GestureDetector(
+                        onTap: isConnected ? null : () => _controller.enableBluetooth(),
+                        child: Opacity(
+                          opacity: isConnected ? 0.5 : 1,
+                          child: Image.asset("assets/images/boton_bt.png", width: 300, height: 55),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: isConnected ? null : () => _controller.searchDevices(),
+                        child: Opacity(
+                          opacity: isConnected ? 0.5 : 1,
+                          child: Image.asset("assets/images/boton_buscar.png", width: 300, height: 55),
+                        ),
+                      ),
+                    ],
                   );
-                  await _controller.enableBluetooth();
                 },
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    image: const DecorationImage(
-                      image: AssetImage("assets/images/boton_bt.png"),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Container(width: 300, height: 55),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Buscando dispositivos Bluetooth...")),
-                  );
-                  await _controller.searchDevices();
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    image: const DecorationImage(
-                      image: AssetImage("assets/images/boton_buscar.png"),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Container(width: 300, height: 55),
-                ),
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -137,10 +111,73 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemCount: devices.length,
                       itemBuilder: (context, index) {
                         final device = devices[index].device;
-                        return Column(
-                          children: [
-                            _buildDeviceCard(device),
-                          ],
+                        final bool isConnected = _controller.connectedDeviceName.value == device.platformName;
+                        return Card(
+                          color: Colors.white10,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            side: const BorderSide(color: Colors.white54),
+                          ),
+                          elevation: 5,
+                          child: Column(
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.bluetooth, color: Colors.white, size: 30),
+                                title: Text(
+                                  device.platformName.isNotEmpty ? device.platformName : "Dispositivo Desconocido",
+                                  style: const TextStyle(fontSize: 18, color: Colors.white),
+                                ),
+                                subtitle: Text(
+                                  device.remoteId.toString(),
+                                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                                ),
+                              ),
+                              if (!isConnected)
+                                ElevatedButton(
+                                  onPressed: () => _controller.connectToDevice(device),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text("Conectar", style: TextStyle(color: Colors.white, fontSize: 16)),
+                                ),
+                              ValueListenableBuilder<bool>(
+                                valueListenable: _controller.isConnected,
+                                builder: (context, isConnected, child) {
+                                  if (isConnected) {
+                                    return Column(
+                                      children: [
+                                        ElevatedButton(
+                                          onPressed: () => _controller.disconnectDevice(),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          child: const Text("Desconectar", style: TextStyle(color: Colors.white, fontSize: 16)),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () => _controller.navigateToControl(context),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          child: const Text("Acceder al Control", style: TextStyle(color: Colors.white, fontSize: 16)),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                  return const SizedBox(); // No mostrar nada si no está conectado
+                                },
+                              ),
+
+                            ],
+                          ),
                         );
                       },
                     );
@@ -149,71 +186,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDeviceCard(BluetoothDevice device) {
-    bool isConnected = _controller.connectedDeviceName.value == device.platformName;
-    return Card(
-      color: Colors.white10,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: const BorderSide(color: Colors.white54),
-      ),
-      elevation: 5,
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.bluetooth, color: Colors.white, size: 30),
-            title: Text(
-              device.platformName.isNotEmpty ? device.platformName : "Dispositivo Desconocido",
-              style: const TextStyle(fontSize: 18, color: Colors.white),
-            ),
-            subtitle: Text(
-              device.remoteId.toString(),
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
-            ),
-          ),
-          if (!isConnected)
-            ElevatedButton(
-              onPressed: () => _controller.connectToDevice(device),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text("Conectar", style: TextStyle(color: Colors.white, fontSize: 16)),
-            ),
-          if (isConnected) ...[
-            ElevatedButton(
-              onPressed: () => _controller.disconnectDevice(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text("Desconectar", style: TextStyle(color: Colors.white, fontSize: 16)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ControlScreen(connectedDevice: device),
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text("Acceder al Control", style: TextStyle(color: Colors.white, fontSize: 16)),
-            ),
-          ],
         ],
       ),
     );

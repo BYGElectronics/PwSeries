@@ -18,7 +18,6 @@ class _ControlScreenState extends State<ControlScreen> {
   @override
   void initState() {
     super.initState();
-    // ✅ Pasar el objeto correcto al controlador y asegurar la conexión
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _controller.setDevice(widget.connectedDevice);
     });

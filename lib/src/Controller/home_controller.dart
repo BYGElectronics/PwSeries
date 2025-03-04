@@ -1,6 +1,10 @@
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:convert';
+import 'dart:async';
+
+import '../pages/control_screen.dart';
 
 class HomeController {
   final FlutterBluePlus flutterBlue = FlutterBluePlus();
@@ -109,7 +113,16 @@ class HomeController {
   /// 📍 **Navegar al Control Virtual**
   void navigateToControl(BuildContext context) {
     if (connectedDevice != null) {
-      Navigator.pushNamed(context, "control");
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ControlScreen(connectedDevice: connectedDevice!),
+        ),
+      );
+    } else {
+      debugPrint("❌ No hay un dispositivo conectado.");
     }
   }
+
+
 }
