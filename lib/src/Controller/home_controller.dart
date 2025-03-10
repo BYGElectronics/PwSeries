@@ -18,7 +18,7 @@ class HomeController {
     _monitorConnectionStatus();
   }
 
-  /// 🔄 **Solicitar permisos necesarios**
+  /// Solicitar permisos necesarios
   Future<void> requestPermissions() async {
     await [
       Permission.bluetoothScan,
@@ -27,7 +27,7 @@ class HomeController {
     ].request();
   }
 
-  /// ✅ **Activar Bluetooth**
+  /// Activar Bluetooth
   Future<void> enableBluetooth() async {
     try {
       bool isOn = await FlutterBluePlus.isOn;
@@ -35,14 +35,14 @@ class HomeController {
         await FlutterBluePlus.turnOn();
         debugPrint("✅ Bluetooth activado.");
       } else {
-        debugPrint("⚠️ Bluetooth ya estaba activado.");
+        debugPrint("Bluetooth ya estaba activado.");
       }
     } catch (e) {
       debugPrint("❌ Error al activar Bluetooth: $e");
     }
   }
 
-  /// 🔍 **Escanear dispositivos BLE y filtrar `BT_PwData` y `BT_PwAudio`**
+  /// Escanear dispositivos BLE y filtrar `BT_PwData` y `BT_PwAudio`**
   Future<void> searchDevices() async {
     await requestPermissions();
 
@@ -54,13 +54,15 @@ class HomeController {
 
     FlutterBluePlus.scanResults.listen((results) {
       bleDevices.value = results;
-      List<ScanResult> validDevices = results.where((r) {
-        String deviceName = r.device.platformName;
-        return deviceName.contains("BT_PwData") || deviceName.contains("BT_PwAudio");
-      }).toList();
+      List<ScanResult> validDevices =
+          results.where((r) {
+            String deviceName = r.device.platformName;
+            return deviceName.contains("BT_PwData") ||
+                deviceName.contains("BT_PwAudio");
+          }).toList();
 
       filteredDevices.value = validDevices;
-      debugPrint("✅ Dispositivos filtrados: ${filteredDevices.value.length}");
+      debugPrint("Dispositivos filtrados: ${filteredDevices.value.length}");
     });
 
     await Future.delayed(const Duration(seconds: 10));
@@ -68,9 +70,9 @@ class HomeController {
     debugPrint("⏹ Escaneo finalizado.");
   }
 
-  /// 🔄 **Conectar a un dispositivo filtrado**
+  /// Conectar a un dispositivo filtrado
   Future<void> connectToDevice(BluetoothDevice device) async {
-    debugPrint("🔄 Intentando conectar a ${device.platformName}...");
+    debugPrint("Intentando conectar a ${device.platformName}...");
 
     try {
       await device.connect(timeout: const Duration(seconds: 10));
@@ -81,22 +83,22 @@ class HomeController {
 
       _monitorConnectionStatus();
     } catch (e) {
-      debugPrint("❌ Error en la conexión: $e");
+      debugPrint("Error en la conexión: $e");
     }
   }
 
-  /// 🔌 **Desconectar el dispositivo**
+  /// Desconectar el dispositivo
   Future<void> disconnectDevice() async {
     if (connectedDevice != null) {
       await connectedDevice!.disconnect();
       connectedDevice = null;
       connectedDeviceName.value = null;
       isConnected.value = false;
-      debugPrint("🔌 Dispositivo desconectado.");
+      debugPrint("Dispositivo desconectado.");
     }
   }
 
-  /// 📡 **Monitor de conexión y desconexión**
+  /// Monitor de conexión y desconexión**
   void _monitorConnectionStatus() {
     if (connectedDevice != null) {
       connectedDevice!.connectionState.listen((BluetoothConnectionState state) {
@@ -104,25 +106,24 @@ class HomeController {
           connectedDevice = null;
           connectedDeviceName.value = null;
           isConnected.value = false;
-          debugPrint("🚨 Dispositivo desconectado automáticamente.");
+          debugPrint("Dispositivo desconectado automáticamente.");
         }
       });
     }
   }
 
-  /// 📍 **Navegar al Control Virtual**
+  /// Navegar al Control Virtual**
   void navigateToControl(BuildContext context) {
     if (connectedDevice != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ControlScreen(connectedDevice: connectedDevice!),
+          builder:
+              (context) => ControlScreen(connectedDevice: connectedDevice!),
         ),
       );
     } else {
-      debugPrint("❌ No hay un dispositivo conectado.");
+      debugPrint("No hay un dispositivo conectado.");
     }
   }
-
-
 }
