@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:pw/src/localization/app_localization.dart';
 import '../Controller/control_controller.dart';
 
 class ControlScreen extends StatefulWidget {
@@ -39,6 +40,17 @@ class _ControlScreenState extends State<ControlScreen> {
               ),
             ),
           ),
+          // Flecha para regresar
+          Positioned(
+            top: 50,
+            left: 10,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, size: 30, color: Colors.white),
+              onPressed: () {
+                Navigator.pop(context); // Regresar a HomeScreen
+              },
+            ),
+          ),
 
           // 📡 Mostrar el nombre del dispositivo conectado
           Positioned(
@@ -47,7 +59,7 @@ class _ControlScreenState extends State<ControlScreen> {
             right: 0,
             child: Center(
               child: Text(
-                "Conectado a: ${widget.connectedDevice.platformName}",
+                "${AppLocalizations.of(context)?.translate('connected_to') ?? 'Conectado a'}: ${widget.connectedDevice.platformName}",
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
@@ -60,31 +72,44 @@ class _ControlScreenState extends State<ControlScreen> {
               children: [
                 const SizedBox(height: 250),
 
-                // 🔊 Botón Sirena
-                _controlButton("Sirena", _controller.activateSiren, Colors.red),
-
-                // 🔦 Botón Auxiliar
                 _controlButton(
-                    "Auxiliar", _controller.activateAux, Colors.orange),
-
-                // 📢 Botón Horn
-                _controlButton("Horn", _controller.activateHorn, Colors.blue),
-
-                // 🔊 Botón Wail
-                _controlButton("Wail", _controller.activateWail, Colors.purple),
-
-                // 🎤 Botón Intercom
+                  AppLocalizations.of(context)?.translate('siren') ?? "Sirena",
+                  _controller.activateSiren,
+                  Colors.red,
+                ),
                 _controlButton(
-                    "Intercom", _controller.activateInter, Colors.green),
-
-                // 🎙 Botón PTT
-                _controlButton("PTT", _controller.activatePTT, Colors.teal),
-
-                const SizedBox(height: 20),
-
-                // 🔄 Solicitar estado del sistema
-                _controlButton("Estado del Sistema",
-                    _controller.requestSystemStatus, Colors.blueGrey),
+                  AppLocalizations.of(context)?.translate('auxiliary') ??
+                      "Auxiliar",
+                  _controller.activateAux,
+                  Colors.orange,
+                ),
+                _controlButton(
+                  AppLocalizations.of(context)?.translate('horn') ?? "Horn",
+                  _controller.activateHorn,
+                  Colors.blue,
+                ),
+                _controlButton(
+                  AppLocalizations.of(context)?.translate('wail') ?? "Wail",
+                  _controller.activateWail,
+                  Colors.purple,
+                ),
+                _controlButton(
+                  AppLocalizations.of(context)?.translate('intercom') ??
+                      "Intercom",
+                  _controller.activateInter,
+                  Colors.green,
+                ),
+                _controlButton(
+                  AppLocalizations.of(context)?.translate('ptt') ?? "PTT",
+                  _controller.activatePTT,
+                  Colors.teal,
+                ),
+                _controlButton(
+                  AppLocalizations.of(context)?.translate('system_status') ??
+                      "Estado del Sistema",
+                  _controller.requestSystemStatus,
+                  Colors.blueGrey,
+                ),
 
                 const SizedBox(height: 30),
 
@@ -100,8 +125,11 @@ class _ControlScreenState extends State<ControlScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text("Desconectar",
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: Text(
+                    AppLocalizations.of(context)?.translate('disconnect') ??
+                        "Desconectar",
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
                 ),
               ],
             ),
@@ -124,8 +152,10 @@ class _ControlScreenState extends State<ControlScreen> {
             borderRadius: BorderRadius.circular(10),
           ),
         ),
-        child: Text(label,
-            style: const TextStyle(color: Colors.white, fontSize: 18)),
+        child: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 18),
+        ),
       ),
     );
   }
