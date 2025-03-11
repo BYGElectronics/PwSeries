@@ -29,11 +29,11 @@ class AppLocalizations {
       'connected_to': 'Conectado a',
       'no_devices_found': 'No se encontraron dispositivos Pw',
       'unknown_device': 'Dispositivo Desconocido',
-
+      'enable_dark_mode': 'Activar modo oscuro',
       'spanish': 'Español (Latinoamérica)',
       'english': 'English (United States)',
       'portuguese': 'Português (Brasil)',
-
+      'french': 'Français (France)',
       'siren': 'Sirena',
       'auxiliary': 'Auxiliar',
       'horn': 'Bocina',
@@ -57,18 +57,18 @@ class AppLocalizations {
       'connected_to': 'Connected to',
       'no_devices_found': 'No Pw devices found',
       'unknown_device': 'Unknown Device',
-
+      'enable_dark_mode': 'Enable Dark Mode',
       'spanish': 'Spanish (Latin America)',
       'english': 'English (United States)',
       'portuguese': 'Portuguese (Brazil)',
-
+      'french': 'French (France)',
       'siren': 'Siren',
       'auxiliary': 'Auxiliary',
       'horn': 'Horn',
       'wail': 'Wail',
-      'intercom': 'intercom',
+      'intercom': 'Intercom',
       'ptt': 'PTT',
-      'system_status': 'System status',
+      'system_status': 'System Status',
     },
     'pt': {
       'title': 'Bem-vindo',
@@ -85,20 +85,49 @@ class AppLocalizations {
       'connected_to': 'Conectado a',
       'no_devices_found': 'Nenhum dispositivo Pw encontrado',
       'unknown_device': 'Dispositivo desconhecido',
-
+      'enable_dark_mode': 'Ativar modo escuro',
       'spanish': 'Espanhol (América Latina)',
       'english': 'Inglês (Estados Unidos)',
       'portuguese': 'Português (Brasil)',
-
+      'french': 'Francês (França)',
       'siren': 'Sirene',
       'auxiliary': 'Auxiliar',
       'horn': 'Buzina',
       'wail': 'Wail',
-      'intercom': 'interfone',
+      'intercom': 'Interfone',
       'ptt': 'PTT',
       'system_status': 'Status do sistema',
     },
+    'fr': {
+      'title': 'Bienvenue',
+      'language': 'Langue',
+      'settings': 'Paramètres',
+      'text_size': 'Taille du texte',
+      'dark_mode': 'Mode sombre / Mode clair',
+      'control': 'Contrôle',
+      'home': 'Accueil',
+      'connect': 'Se connecter',
+      'disconnect': 'Se déconnecter',
+      'access_control': 'Accéder au contrôle',
+      'detection_mode': 'Mode détection',
+      'connected_to': 'Connecté à',
+      'no_devices_found': 'Aucun appareil Pw trouvé',
+      'unknown_device': 'Appareil inconnu',
+      'enable_dark_mode': 'Activer le mode sombre',
+      'spanish': 'Espagnol (Amérique Latine)',
+      'english': 'Anglais (États-Unis)',
+      'portuguese': 'Portugais (Brésil)',
+      'french': 'Français (France)',
+      'siren': 'Sirène',
+      'auxiliary': 'Auxiliaire',
+      'horn': 'Klaxon',
+      'wail': 'Wail',
+      'intercom': 'Interphone',
+      'ptt': 'PTT',
+      'system_status': 'État du système',
+    },
   };
+
 
   String translate(String key) {
     return _localizedStrings[locale.languageCode]?[key] ?? key;
@@ -115,5 +144,7 @@ class AppLocalizations {
     Locale('es'), // Español
     Locale('en'), // Inglés
     Locale('pt'), // Portugués
+    Locale('fr'), // Francés
   ];
+
 }

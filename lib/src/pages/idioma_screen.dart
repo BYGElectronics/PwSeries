@@ -49,6 +49,19 @@ class IdiomaScreen extends StatelessWidget {
               Navigator.pop(context);
             },
           ),
+
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(
+              AppLocalizations.of(context)?.translate('french') ??
+                  "Français (France)",
+            ),
+            onTap: () {
+              idiomaController.cambiarIdioma('fr');
+              Navigator.pop(context);
+            },
+          ),
+
         ],
       ),
     );

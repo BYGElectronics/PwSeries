@@ -7,8 +7,9 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
 
   @override
   bool isSupported(Locale locale) {
-    return ['es', 'en', 'pt'].contains(locale.languageCode);
+    return ['es', 'en', 'pt', 'fr'].contains(locale.languageCode);
   }
+
 
   @override
   Future<AppLocalizations> load(Locale locale) async {
