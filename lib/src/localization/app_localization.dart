@@ -43,6 +43,8 @@ class AppLocalizations {
       'system_status': 'Estado del Sistema',
       'adjust_text_size': 'Ajusta el tamaño del texto',
       'preview_text': 'Texto de ejemplo',
+
+
     },
     'en': {
       'title': 'Welcome',

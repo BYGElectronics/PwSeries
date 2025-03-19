@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:pw/src/Controller/control_controller.dart';
 import 'package:pw/src/Controller/home_controller.dart';
+import '../Controller/idioma_controller.dart';
 import '../Controller/ptt_controller.dart';
 
 class ControlScreen extends StatefulWidget {
@@ -19,16 +21,27 @@ class ControlScreen extends StatefulWidget {
   State<ControlScreen> createState() => _ControlScreenState();
 }
 
-class _ControlScreenState extends State<ControlScreen> {
+class _ControlScreenState extends State<ControlScreen>
+    with SingleTickerProviderStateMixin {
   StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
   bool _isReconnecting = false;
+  bool _isPWMode = true; // Estado inicial de la imagen
   final ControlController _controller = ControlController();
   final PttController _pttController = PttController();
+
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _monitorConnection();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _fadeAnimation =
+        Tween<double>(begin: 1.0, end: 0.0).animate(_animationController);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _controller.setDevice(widget.connectedDevice);
     });
@@ -37,6 +50,7 @@ class _ControlScreenState extends State<ControlScreen> {
   @override
   void dispose() {
     _connectionSubscription?.cancel();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -46,11 +60,8 @@ class _ControlScreenState extends State<ControlScreen> {
           (BluetoothConnectionState state) async {
         if (state == BluetoothConnectionState.disconnected) {
           debugPrint("⚠️ Dispositivo PW desconectado.");
-
           if (!_isReconnecting) {
             _isReconnecting = true;
-            setState(() {}); // Bloquea los botones visualmente
-
             bool reconnected = await _attemptReconnection();
             if (!reconnected) {
               _redirectToHome();
@@ -64,12 +75,10 @@ class _ControlScreenState extends State<ControlScreen> {
   /// **Intentar reconectar automáticamente**
   Future<bool> _attemptReconnection() async {
     debugPrint("🔄 Intentando reconectar al dispositivo...");
-
     try {
       await widget.connectedDevice.connect();
       debugPrint("✅ Reconectado exitosamente.");
       _isReconnecting = false;
-      setState(() {}); // Reactiva los botones
       return true;
     } catch (e) {
       debugPrint("❌ Falló la reconexión: $e");
@@ -80,12 +89,10 @@ class _ControlScreenState extends State<ControlScreen> {
   /// **Redirigir a la pantalla principal y hacer un escaneo**
   void _redirectToHome() {
     debugPrint("🔴 No se pudo reconectar. Regresando a Home y escaneando...");
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Navigator.popUntil(context, ModalRoute.withName("home"));
       HomeController().searchDevices();
     });
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Dispositivo desconectado. Buscando nuevamente..."),
@@ -94,11 +101,30 @@ class _ControlScreenState extends State<ControlScreen> {
     );
   }
 
+  /// **Cambia la imagen y navega a la otra pantalla**
+  void _toggleMode() {
+    _animationController.forward().then((_) {
+      setState(() {
+        _isPWMode = !_isPWMode;
+      });
+      _animationController.reverse();
+
+      // Redirigir a la pantalla correcta después del cambio de imagen
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_isPWMode) {
+          debugPrint("🔵 Navegando al teclado principal (PW)");
+          // Aquí mantienes la pantalla actual
+        } else {
+          debugPrint("⚙️ Navegando al teclado de configuración");
+          Navigator.pushNamed(context, "/configScreen"); // Cambia según ruta
+        }
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
-
+    final idiomaController = Provider.of<IdiomaController>(context);
     return Scaffold(
       body: Stack(
         alignment: Alignment.center,
@@ -106,9 +132,9 @@ class _ControlScreenState extends State<ControlScreen> {
           // Header
           Positioned(
             top: 0,
-            width: screenWidth,
-            height: screenHeight * 0.15,
+            width: MediaQuery.of(context).size.width,
             child: Container(
+              height: 150,
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage("assets/images/header.png"),
@@ -120,123 +146,121 @@ class _ControlScreenState extends State<ControlScreen> {
 
           // Botón de regreso
           Positioned(
-            top: screenHeight * 0.05,
+            top: 50,
             left: 10,
             child: IconButton(
               icon: const Icon(Icons.arrow_back, size: 30, color: Colors.white),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
           ),
 
           // Fondo del teclado
           Positioned(
-            top: screenHeight * 0.26,
-            width: screenWidth * 0.9,
-            height: screenHeight * 0.35,
+            top: MediaQuery.of(context).size.height * 0.34,
             child: Image.asset(
               "assets/images/Teclado/Principal/fondoPrincipal.png",
+              width: MediaQuery.of(context).size.width * 0.9,
               fit: BoxFit.contain,
             ),
           ),
 
-          // Botones sobre el fondo, más pegados
+          // Botones sobre el fondo
           Positioned(
-            top: screenHeight * 0.35,
-            width: screenWidth * 0.9,
+            top: MediaQuery.of(context).size.height * 0.35,
             child: Column(
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
+
                     GestureDetector(
                       onTapDown: (_) => _controller.toggleWail(),
                       onTapUp: (_) => _controller.toggleWail(),
                       onTapCancel: () => _controller.toggleWail(),
-                      child: _buildButton(
-                          "assets/images/Teclado/Principal/wail.png",
-                              () {},
-                          screenWidth * 0.22),
-                    ), SizedBox(width: screenWidth * 0),
-                    SizedBox(width: screenWidth * 0), // Espaciado reducido
+                      child: Image.asset(
+                        "assets/images/Teclado/Principal/wail.png",
+                        width: 90,
+                        height: 65,
+                    ),
+                    ),
+
                     _buildButton("assets/images/Teclado/Principal/sirena.png",
-                        _controller.activateSiren, screenWidth * 0.37),
-                    SizedBox(width: screenWidth * 0.01),
-                    _buildButton(
-                        "assets/images/Teclado/Principal/intercomunicador.png",
-                        _controller.activateInter,
-                        screenWidth * 0.22),
+                        _controller.activateSiren, width: 130, height: 70),
+                    _buildButton("assets/images/Teclado/Principal/intercomunicador.png",
+                        _controller.activateInter, width: 90, height: 65),
                   ],
                 ),
-                SizedBox(height: screenHeight * 0.01), // Espaciado reducido
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     GestureDetector(
                       onTapDown: (_) => _controller.toggleHorn(),
                       onTapUp: (_) => _controller.toggleHorn(),
                       onTapCancel: () => _controller.toggleHorn(),
-                      child: _buildButton(
-                          "assets/images/Teclado/Principal/horn.png",
-                              () {},
-                          screenWidth * 0.22),
-                    ), SizedBox(width: screenWidth * 0.01),
+                      child: Image.asset(
+                        "assets/images/Teclado/Principal/horn.png",
+                        width: 100,
+                        height: 60,
+                      ),
+                    ),
                     _buildButton("assets/images/Teclado/Principal/auxiliar.png",
-                        _controller.activateAux, screenWidth * 0.30),
-                    SizedBox(width: screenWidth * 0.01),
+                        _controller.activateAux, width: 120, height: 80),
                     GestureDetector(
                       onTapDown: (_) => _controller.togglePTT(),
                       onTapUp: (_) => _controller.togglePTT(),
                       onTapCancel: () => _controller.togglePTT(),
-                      child: _buildButton(
-                          "assets/images/Teclado/Principal/ptt.png",
-                              () {},
-                          screenWidth * 0.22),
+                      child: Image.asset(
+                        "assets/images/Teclado/Principal/ptt.png",
+                        width: 100,
+                        height: 60,
+                      ),
                     ),
                   ],
                 ),
+
               ],
             ),
           ),
 
-          // Mensaje de reconexión
-          if (_isReconnecting)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 20),
-                      Text(
-                        "Reconectando...",
-                        style: TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                    ],
-                  ),
+          // Imagen de selección de modo (con animación)
+          Positioned(
+            bottom: 270,
+            child: GestureDetector(
+              onTap: _toggleMode,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Image.asset(
+                  _isPWMode
+                      ? "assets/images/Teclado/Principal/pw:config.png"
+                      : "assets/images/Teclado/Config/config:pw.png",
+                  width: MediaQuery.of(context).size.width * 0.71,
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
   }
 
-  /// Función para construir botones con opacidad si está desconectado
-  Widget _buildButton(String assetPath, VoidCallback onPressed, double size) {
+
+
+  /// **Función para construir botones con tamaños personalizados**
+  Widget _buildButton(String assetPath, VoidCallback onPressed,
+      {VoidCallback? onTap, double width = 100, double height = 70}) {
     return GestureDetector(
       onTap: _isReconnecting ? null : onPressed,
-      child: Opacity(
-        opacity: _isReconnecting ? 0.5 : 1.0,
-        child: SizedBox(
-          width: size,
-          height: size * 0.5,
-          child: Image.asset(assetPath, fit: BoxFit.contain),
-        ),
+      onTapDown: _isReconnecting ? null : (_) => onTap?.call(),
+      onTapUp: _isReconnecting ? null : (_) => onTap?.call(),
+      onTapCancel: _isReconnecting ? null : () => onTap?.call(),
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 3), // Espacio entre botones
+        width: width,
+        height: height,
+        child: Image.asset(assetPath, fit: BoxFit.contain),
       ),
     );
   }
+
+
 }

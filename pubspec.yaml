@@ -54,5 +54,9 @@ flutter:
     - assets/images/Teclado/
     - assets/images/Teclado/Principal/
     - assets/images/Teclado/Config/
+    - assets/images/Botones/Espanol/
+    - assets/images/Botones/Ingles/
+    - assets/images/Botones/Frances/
+    - assets/images/Botones/Portugues/
 
 

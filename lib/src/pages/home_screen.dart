@@ -4,7 +4,9 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Manejo de Bluetoot
 import 'package:provider/provider.dart'; // Proveedor de estado para manejar la lógica de configuración
 import 'package:pw/src/Controller/home_controller.dart'; // Controlador principal de la pantalla de inicio
 import 'package:pw/src/Controller/config_controller.dart'; // Controlador de configuración
-import 'package:pw/src/localization/app_localization.dart'; // Manejo de internacionalización (traducción)
+import 'package:pw/src/localization/app_localization.dart';
+
+import '../Controller/idioma_controller.dart'; // Manejo de internacionalización (traducción)
 
 // **Clase principal que representa la pantalla de inicio**
 //
@@ -35,12 +37,31 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final HomeController _controller = HomeController();
 
+  /// **Función para obtener la imagen del botón según el idioma**
+  String _getLocalizedButtonImage(String buttonName, String locale) {
+    String folder = "assets/images/Botones"; // Carpeta base de las imágenes
+
+    switch (locale) {
+      case "es":
+        return "$folder/Espanol/$buttonName.png"; // Español
+      case "fr":
+        return "$folder/Frances/${buttonName}_3.png"; // Francés
+      case "en":
+        return "$folder/Ingles/${buttonName}_1.png"; // Inglés
+      case "pt":
+        return "$folder/Portugues/${buttonName}_2.png"; // Portugués
+      default:
+        return "$folder/Espanol/$buttonName.png"; // Español por defecto
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final configController = Provider.of<ConfigController>(context);
     final textColor =
         Theme.of(context).textTheme.bodyMedium?.color ??
         Colors.white; // ✅ Se adapta al modo oscuro SOLO para textos
+    final idiomaController = Provider.of<IdiomaController>(context);
 
     return Scaffold(
       body: Stack(
@@ -111,40 +132,74 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context, isConnected, child) {
                   return Column(
                     children: [
-                      GestureDetector(
-                        onTap:
-                            isConnected
-                                ? null
-                                : () => _controller.enableBluetooth(),
-                        child: Opacity(
-                          opacity: isConnected ? 0.5 : 1,
-                          child: Image.asset(
-                            "assets/images/boton_bt.png",
-                            width: 300,
-                            height: 55,
-                          ),
-                        ),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: _controller.isConnected,
+                        builder: (context, isConnected, child) {
+                          return GestureDetector(
+                            onTap:
+                                isConnected
+                                    ? null
+                                    : () => _controller.enableBluetooth(),
+                            child: Opacity(
+                              opacity: isConnected ? 0.5 : 1,
+                              child: Image.asset(
+                                _getLocalizedButtonImage(
+                                  "Activar",
+                                  idiomaController.locale.languageCode,
+                                ), // ✅ Usa la imagen en el idioma correcto
+                                width: 300,
+                                height: 65,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap:
-                            isConnected
-                                ? null
-                                : () => _controller.searchDevices(),
-                        child: Opacity(
-                          opacity: isConnected ? 0.5 : 1,
-                          child: Image.asset(
-                            "assets/images/boton_buscar.png",
-                            width: 300,
-                            height: 55,
-                          ),
-                        ),
+                      const SizedBox(height: 10),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: _controller.isConnected,
+                        builder: (context, isConnected, child) {
+                          return GestureDetector(
+                            onTap:
+                                isConnected
+                                    ? null
+                                    : () => _controller.searchDevices(),
+                            child: Opacity(
+                              opacity: isConnected ? 0.5 : 1,
+                              child: Image.asset(
+                                _getLocalizedButtonImage(
+                                  "Buscar",
+                                  idiomaController.locale.languageCode,
+                                ), // ✅ Usa la imagen en el idioma correcto
+                                width: 300,
+                                height: 65,
+                              ),
+                            ),
+                          );
+                        },
                       ),
+                      const SizedBox(height: 10),
                     ],
                   );
                 },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
+
+              // 🔹 Línea separadora
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                ), // Espaciado de los lados
+                child: Divider(
+                  color:
+                      configController.isDarkMode
+                          ? Colors.white38
+                          : Colors.black38, // 🔹 Color adaptable al modo
+                  thickness: 2, // Grosor de la línea
+                ),
+              ),
+              const SizedBox(height: 5),
+
               Expanded(
                 child: ValueListenableBuilder<List<ScanResult>>(
                   valueListenable: _controller.filteredDevices,
@@ -156,9 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 context,
                               )?.translate('no_devices_found') ??
                               "No se encontraron dispositivos Pw",
-                          style: TextStyle(
-                            color: textColor,
-                          ), // ✅ Se adapta al modo oscuro SOLO para textos
+                          style: TextStyle(color: textColor),
                         ),
                       );
                     }
@@ -166,126 +219,146 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemCount: devices.length,
                       itemBuilder: (context, index) {
                         final device = devices[index].device;
-                        final bool isConnected =
-                            _controller.connectedDeviceName.value ==
-                            device.platformName;
-                        return Card(
-                          color: Colors.white10,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            side: BorderSide(
-                              color: textColor.withOpacity(0.5),
-                            ), // ✅ Se adapta al modo oscuro SOLO para textos
-                          ),
-                          elevation: 5,
-                          child: Column(
-                            children: [
-                              ListTile(
-                                leading: const Icon(
-                                  Icons.bluetooth,
-                                  color:
-                                      Colors.white, // ❌ No cambia con dark mode
-                                  size: 30,
-                                ),
-                                title: Text(
-                                  device.platformName.isNotEmpty
-                                      ? device.platformName
-                                      : AppLocalizations.of(
-                                            context,
-                                          )?.translate('unknown_device') ??
-                                          "Dispositivo Desconocido",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: textColor,
-                                  ), // ✅ Se adapta al modo oscuro SOLO para textos
-                                ),
-                                subtitle: Text(
-                                  device.remoteId.toString(),
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: textColor.withOpacity(0.7),
-                                  ), // ✅ Se adapta al modo oscuro SOLO para textos
-                                ),
+
+                        return ValueListenableBuilder<bool>(
+                          valueListenable: _controller.isConnected,
+                          builder: (context, isConnected, child) {
+                            final bool isThisDeviceConnected =
+                                _controller.connectedDeviceName.value ==
+                                    device.platformName &&
+                                isConnected;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 16,
                               ),
-                              if (!isConnected)
-                                ElevatedButton(
-                                  onPressed:
-                                      () => _controller.connectToDevice(device),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    AppLocalizations.of(
-                                          context,
-                                        )?.translate('connect') ??
-                                        "Conectar",
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ValueListenableBuilder<bool>(
-                                valueListenable: _controller.isConnected,
-                                builder: (context, isConnected, child) {
-                                  if (isConnected) {
-                                    return Column(
-                                      children: [
-                                        ElevatedButton(
-                                          onPressed:
-                                              () =>
-                                                  _controller
-                                                      .disconnectDevice(),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // 🔹 Información del dispositivo a la izquierda
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.bluetooth,
+                                        color:
+                                            Colors
+                                                .blueAccent, // Icono de Bluetooth
+                                        size: 35,
+                                      ),
+                                      const SizedBox(
+                                        width: 5,
+                                      ), // Espacio entre icono y texto
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            device.platformName.isNotEmpty
+                                                ? device.platformName
+                                                : AppLocalizations.of(
+                                                      context,
+                                                    )?.translate(
+                                                      'unknown_device',
+                                                    ) ??
+                                                    "Dispositivo Desconocido",
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color:
+                                                  configController.isDarkMode
+                                                      ? Colors.white
+                                                      : Colors.black,
                                             ),
                                           ),
-                                          child: Text(
-                                            AppLocalizations.of(
-                                                  context,
-                                                )?.translate('disconnect') ??
-                                                "Desconectar",
-                                            style: const TextStyle(
-                                              color: Colors.white,
+                                          Text(
+                                            device.remoteId.toString(),
+                                            style: TextStyle(
                                               fontSize: 16,
+                                              color:
+                                                  configController.isDarkMode
+                                                      ? Colors.white70
+                                                      : Colors.black54,
                                             ),
                                           ),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed:
-                                              () => _controller
-                                                  .navigateToControl(context),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.blue,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+
+                                  // 🔹 Botones (se actualizan automáticamente)
+                                  Column(
+                                    children: [
+                                      isThisDeviceConnected
+                                          ? Column(
+                                            children: [
+                                              // **Botón Desconectar**
+                                              GestureDetector(
+                                                onTap: () async {
+                                                  await _controller
+                                                      .disconnectDevice();
+                                                  setState(
+                                                    () {},
+                                                  ); // 🔄 Refresca la interfaz automáticamente
+                                                },
+                                                child: Image.asset(
+                                                  _getLocalizedButtonImage(
+                                                    "Desconectar",
+                                                    idiomaController
+                                                        .locale
+                                                        .languageCode,
+                                                  ),
+                                                  width: 150,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 10),
+
+                                              // **Botón Teclado PW**
+                                              GestureDetector(
+                                                onTap:
+                                                    () => _controller
+                                                        .navigateToControl(
+                                                          context,
+                                                        ),
+                                                child: Image.asset(
+                                                  _getLocalizedButtonImage(
+                                                    "Teclado",
+                                                    idiomaController
+                                                        .locale
+                                                        .languageCode,
+                                                  ),
+                                                  width: 160,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                          : GestureDetector(
+                                            onTap: () async {
+                                              await _controller.connectToDevice(
+                                                device,
+                                              );
+                                              setState(
+                                                () {},
+                                              ); // 🔄 Refresca la interfaz automáticamente
+                                            },
+                                            child: Image.asset(
+                                              _getLocalizedButtonImage(
+                                                "Conectar",
+                                                idiomaController
+                                                    .locale
+                                                    .languageCode,
+                                              ),
+                                              width: 150,
                                             ),
                                           ),
-                                          child: Text(
-                                            AppLocalizations.of(
-                                                  context,
-                                                )?.translate(
-                                                  'access_control',
-                                                ) ??
-                                                "Acceder al Teclado",
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  }
-                                  return const SizedBox(); // No mostrar nada si no está conectado
-                                },
+                                    ],
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       },
                     );
