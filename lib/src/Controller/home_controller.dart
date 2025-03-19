@@ -4,7 +4,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:convert';
 import 'dart:async';
 
-
 import '../pages/control_screen.dart';
 
 class HomeController {
@@ -13,6 +12,7 @@ class HomeController {
   final ValueNotifier<List<ScanResult>> filteredDevices = ValueNotifier([]);
   final ValueNotifier<String?> connectedDeviceName = ValueNotifier(null);
   final ValueNotifier<bool> isConnected = ValueNotifier(false);
+  final ValueNotifier<bool> isClassicConnected = ValueNotifier(false);
   BluetoothDevice? connectedDevice;
 
   HomeController() {
@@ -71,6 +71,25 @@ class HomeController {
     debugPrint("⏹ Escaneo finalizado.");
   }
 
+  void openControlScreen(BuildContext context) {
+    if (connectedDevice != null && connectedDevice!.platformName.contains("Pw")) {
+      Navigator.pushNamed(
+        context,
+        "control",
+        arguments: connectedDevice,
+      );
+    } else {
+      debugPrint("⚠️ Debes conectar un dispositivo PW para acceder al teclado.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Conéctate a un dispositivo PW para usar el teclado."),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+
   /// Conectar a un dispositivo filtrado
   Future<void> connectToDevice(BluetoothDevice device) async {
     debugPrint("Intentando conectar a ${device.platformName}...");
@@ -88,6 +107,22 @@ class HomeController {
     }
   }
 
+  /// Conectar Bluetooth Classic para PTT
+  Future<void> connectClassicBluetooth() async {
+    if (connectedDevice != null) {
+      debugPrint("Activando Bluetooth Classic para PTT...");
+      isClassicConnected.value = true;
+    }
+  }
+
+  /// Desconectar Bluetooth Classic
+  Future<void> disconnectClassicBluetooth() async {
+    if (isClassicConnected.value) {
+      debugPrint("Desactivando Bluetooth Classic...");
+      isClassicConnected.value = false;
+    }
+  }
+
   /// Desconectar el dispositivo
   Future<void> disconnectDevice() async {
     if (connectedDevice != null) {
@@ -95,6 +130,7 @@ class HomeController {
       connectedDevice = null;
       connectedDeviceName.value = null;
       isConnected.value = false;
+      isClassicConnected.value = false;
       debugPrint("Dispositivo desconectado.");
     }
   }
@@ -107,24 +143,21 @@ class HomeController {
           connectedDevice = null;
           connectedDeviceName.value = null;
           isConnected.value = false;
+          isClassicConnected.value = false;
           debugPrint("Dispositivo desconectado automáticamente.");
         }
       });
     }
   }
 
-  /// Navegar al Control Virtual**
+  /// Navegar al Teclado Virtual**
   void navigateToControl(BuildContext context) {
-    if (connectedDevice != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => ControlScreen(connectedDevice: connectedDevice!),
-        ),
-      );
-    } else {
-      debugPrint("No hay un dispositivo conectado.");
-    }
+    Navigator.pushNamed(
+      context,
+      "control",
+      arguments: connectedDevice, // Asegúrate de que este objeto sea válido
+    );
+
+
   }
 }

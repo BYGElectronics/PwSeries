@@ -61,7 +61,6 @@ class IdiomaScreen extends StatelessWidget {
               Navigator.pop(context);
             },
           ),
-
         ],
       ),
     );

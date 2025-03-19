@@ -16,26 +16,29 @@ class ConfigScreen extends StatelessWidget {
       {
         'icon': Icons.language,
         'label': 'language',
-        'action': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => IdiomaScreen()),
-        ),
+        'action':
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => IdiomaScreen()),
+            ),
       },
       {
         'icon': Icons.text_fields,
         'label': 'text_size',
-        'action': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => TextSizeScreen()),
-        ),
+        'action':
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => TextSizeScreen()),
+            ),
       },
       {
         'icon': Icons.dark_mode,
         'label': 'dark_mode',
-        'action': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => DarkModeScreen()),
-        ),
+        'action':
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => DarkModeScreen()),
+            ),
       },
     ];
 
@@ -69,7 +72,8 @@ class ConfigScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  AppLocalizations.of(context)?.translate('settings') ?? "Ajustes",
+                  AppLocalizations.of(context)?.translate('settings') ??
+                      "Ajustes",
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -85,7 +89,10 @@ class ConfigScreen extends StatelessWidget {
                     return ListTile(
                       leading: Icon(item['icon']),
                       title: Text(
-                        AppLocalizations.of(context)?.translate(item['label']) ?? item['label'],
+                        AppLocalizations.of(
+                              context,
+                            )?.translate(item['label']) ??
+                            item['label'],
                       ),
                       onTap: item['action'],
                     );

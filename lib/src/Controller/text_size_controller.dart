@@ -10,4 +10,3 @@ class TextSizeController with ChangeNotifier {
     notifyListeners(); // Notificar cambios a la app
   }
 }
-

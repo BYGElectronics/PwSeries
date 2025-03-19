@@ -20,11 +20,11 @@ class AppLocalizations {
       'settings': 'Configuración',
       'text_size': 'Tamaño del texto',
       'dark_mode': 'Modo oscuro / Modo claro',
-      'control': 'Control',
+      'control': 'Teclado',
       'home': 'Inicio',
       'connect': 'Conectar',
       'disconnect': 'Desconectar',
-      'access_control': 'Acceder al Control',
+      'access_control': 'Acceder al Teclado',
       'detection_mode': 'Modo detección',
       'connected_to': 'Conectado a',
       'no_devices_found': 'No se encontraron dispositivos Pw',
@@ -41,6 +41,8 @@ class AppLocalizations {
       'intercom': 'Intercomunicador',
       'ptt': 'PTT',
       'system_status': 'Estado del Sistema',
+      'adjust_text_size': 'Ajusta el tamaño del texto',
+      'preview_text': 'Texto de ejemplo',
     },
     'en': {
       'title': 'Welcome',
@@ -48,11 +50,11 @@ class AppLocalizations {
       'settings': 'Settings',
       'text_size': 'Text Size',
       'dark_mode': 'Dark Mode / Light Mode',
-      'control': 'Control',
+      'control': 'Teclado',
       'home': 'Home',
       'connect': 'Connect',
       'disconnect': 'Disconnect',
-      'access_control': 'Access Control',
+      'access_control': 'Access Teclado',
       'detection_mode': 'Detection Mode',
       'connected_to': 'Connected to',
       'no_devices_found': 'No Pw devices found',
@@ -128,7 +130,6 @@ class AppLocalizations {
     },
   };
 
-
   String translate(String key) {
     return _localizedStrings[locale.languageCode]?[key] ?? key;
   }
@@ -146,5 +147,4 @@ class AppLocalizations {
     Locale('pt'), // Portugués
     Locale('fr'), // Francés
   ];
-
 }

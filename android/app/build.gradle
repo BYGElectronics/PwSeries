@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.bygelectronics.pw" // ID único de tu aplicación.
-        minSdk = flutter.minSdkVersion // Versión mínima soportada por Flutter.
+        minSdk = 24 // Versión mínima soportada por Flutter.
         targetSdk = flutter.targetSdkVersion // Versión objetivo soportada por Flutter.
         versionCode = flutter.versionCode // Versión del código.
         versionName = flutter.versionName // Versión del nombre.

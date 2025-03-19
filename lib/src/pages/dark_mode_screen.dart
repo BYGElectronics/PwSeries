@@ -10,7 +10,10 @@ class DarkModeScreen extends StatelessWidget {
       builder: (context, configController, child) {
         return Scaffold(
           appBar: AppBar(
-            title: Text(AppLocalizations.of(context)?.translate('dark_mode') ?? "Modo Oscuro"),
+            title: Text(
+              AppLocalizations.of(context)?.translate('dark_mode') ??
+                  "Modo Oscuro",
+            ),
           ),
           body: Padding(
             padding: const EdgeInsets.all(20),
@@ -19,7 +22,8 @@ class DarkModeScreen extends StatelessWidget {
               children: [
                 // **Texto**
                 Text(
-                  AppLocalizations.of(context)?.translate('enable_dark_mode') ?? "Activar modo oscuro",
+                  AppLocalizations.of(context)?.translate('enable_dark_mode') ??
+                      "Activar modo oscuro",
                   style: const TextStyle(fontSize: 18),
                 ),
 
