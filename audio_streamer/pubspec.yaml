@@ -1,0 +1,5 @@
+name: audio_streamer
+description: Local audio stream package for real-time microphone access
+version: 1.0.0
+environment:
+  sdk: '>=2.17.0 <4.0.0'
