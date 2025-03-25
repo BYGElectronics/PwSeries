@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:pw/src/Controller/config_controller.dart';
 import 'package:pw/src/localization/app_localization.dart';
+
 import 'text_size_screen.dart';
 import 'idioma_screen.dart';
 import 'dark_mode_screen.dart';
+
 
 class ConfigScreen extends StatelessWidget {
   final ConfigController controller;
@@ -40,14 +42,18 @@ class ConfigScreen extends StatelessWidget {
               MaterialPageRoute(builder: (context) => DarkModeScreen()),
             ),
       },
+
+
     ];
+
+
 
     return Scaffold(
       body: Stack(
         children: [
           Container(
             width: double.infinity,
-            height: 150,
+            height: 160,
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage("assets/images/header.png"),
@@ -64,6 +70,7 @@ class ConfigScreen extends StatelessWidget {
                 Navigator.pop(context);
               },
             ),
+
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,6 +88,9 @@ class ConfigScreen extends StatelessWidget {
                 ),
               ),
               const Divider(),
+
+
+
               Expanded(
                 child: ListView.builder(
                   itemCount: opcionesConfiguracion.length,
@@ -99,10 +109,17 @@ class ConfigScreen extends StatelessWidget {
                   },
                 ),
               ),
+
             ],
           ),
         ],
+
       ),
+
     );
+
+
+
   }
+
 }

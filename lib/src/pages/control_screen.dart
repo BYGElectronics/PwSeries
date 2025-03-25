@@ -5,14 +5,19 @@ import 'package:provider/provider.dart';
 import 'package:pw/src/Controller/control_controller.dart';
 import 'package:pw/src/Controller/home_controller.dart';
 import '../Controller/idioma_controller.dart';
-import '../Controller/ptt_controller.dart';
+
+
+
 
 class ControlScreen extends StatefulWidget {
   final BluetoothDevice connectedDevice;
   final ControlController controller;
 
+
+
   const ControlScreen({
     Key? key,
+
     required this.connectedDevice,
     required this.controller,
   }) : super(key: key);
@@ -25,12 +30,74 @@ class _ControlScreenState extends State<ControlScreen>
     with SingleTickerProviderStateMixin {
   StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
   bool _isReconnecting = false;
-  bool _isPWMode = true; // Estado inicial de la imagen
+  bool _isPWMode = true;
+  bool _manualDisconnect = false;
   final ControlController _controller = ControlController();
-  final PttController _pttController = PttController();
+
+
+
+
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+
+
+  /// **Función para obtener la imagen del botón según el idioma**
+  String _getLocalizedButtonImage(String buttonName, String locale) {
+    String folder = "assets/images/Botones"; // 📂 Carpeta base de imágenes
+
+    switch (locale) {
+      case "es": // Español
+        return "$folder/Espanol/$buttonName.png";
+      case "fr": // Francés
+        return "$folder/Frances/${buttonName}_3.png";
+      case "en": // Inglés
+        return "$folder/Ingles/${buttonName}_1.png";
+      case "pt": // Portugués
+        return "$folder/Portugues/${buttonName}_2.png";
+      default: // Español por defecto
+        return "$folder/Espanol/$buttonName.png";
+    }
+  }
+
+
+  /// **Monitoreo de la conexión BLE**
+  void _monitorConnection() {
+    _connectionSubscription = widget.connectedDevice.connectionState.listen((
+      BluetoothConnectionState state,
+    ) async {
+      if (state == BluetoothConnectionState.disconnected) {
+        debugPrint("⚠️ Dispositivo PW desconectado.");
+
+        if (!_manualDisconnect) {
+          // ✅ Solo intenta reconectar si NO fue una desconexión manual
+          debugPrint("🔄 Intentando reconectar...");
+          bool reconnected = await _attemptReconnection();
+          if (!reconnected) {
+            _redirectToHome();
+          }
+        } else {
+          debugPrint(
+            "🛑 Desconectado manualmente. No se intentará reconectar.",
+          );
+        }
+      }
+    });
+  }
+
+  /// **Función para desconectar manualmente y regresar a Home**
+  Future<void> _disconnectAndReturnHome() async {
+    _manualDisconnect = true; // 🔴 Se marca como desconexión manual
+    _controller.disconnectDevice(); // ❌ Sin `await` porque es `void`
+
+    if (mounted) {
+      Navigator.popUntil(
+        context,
+        ModalRoute.withName("home"),
+      ); // ✅ Volver a la pantalla principal
+    }
+  }
+
 
   @override
   void initState() {
@@ -47,6 +114,7 @@ class _ControlScreenState extends State<ControlScreen>
     });
   }
 
+
   @override
   void dispose() {
     _connectionSubscription?.cancel();
@@ -54,25 +122,6 @@ class _ControlScreenState extends State<ControlScreen>
     super.dispose();
   }
 
-  /// **Monitoreo de la conexión BLE**
-  void _monitorConnection() {
-    _connectionSubscription = widget.connectedDevice.connectionState.listen(
-          (BluetoothConnectionState state) async {
-        if (state == BluetoothConnectionState.disconnected) {
-          debugPrint("⚠️ Dispositivo PW desconectado.");
-          if (!_isReconnecting) {
-            _isReconnecting = true;
-            bool reconnected = await _attemptReconnection();
-            if (!reconnected) {
-              _redirectToHome();
-            }
-          }
-        }
-      },
-    );
-  }
-
-  /// **Intentar reconectar automáticamente**
   Future<bool> _attemptReconnection() async {
     debugPrint("🔄 Intentando reconectar al dispositivo...");
     try {
@@ -86,7 +135,6 @@ class _ControlScreenState extends State<ControlScreen>
     }
   }
 
-  /// **Redirigir a la pantalla principal y hacer un escaneo**
   void _redirectToHome() {
     debugPrint("🔴 No se pudo reconectar. Regresando a Home y escaneando...");
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -94,14 +142,13 @@ class _ControlScreenState extends State<ControlScreen>
       HomeController().searchDevices();
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text("Dispositivo desconectado. Buscando nuevamente..."),
         duration: Duration(seconds: 3),
       ),
     );
   }
 
-  /// **Cambia la imagen y navega a la otra pantalla**
   void _toggleMode() {
     _animationController.forward().then((_) {
       setState(() {
@@ -109,14 +156,13 @@ class _ControlScreenState extends State<ControlScreen>
       });
       _animationController.reverse();
 
-      // Redirigir a la pantalla correcta después del cambio de imagen
-      Future.delayed(const Duration(milliseconds: 300), () {
+      Future.delayed(const Duration(milliseconds: 10), () {
         if (_isPWMode) {
           debugPrint("🔵 Navegando al teclado principal (PW)");
-          // Aquí mantienes la pantalla actual
         } else {
           debugPrint("⚙️ Navegando al teclado de configuración");
-          Navigator.pushNamed(context, "/configScreen"); // Cambia según ruta
+          Navigator.pushNamed(context, "/controlConfig"); // ⚡ Ir al teclado configuración
+
         }
       });
     });
@@ -125,16 +171,22 @@ class _ControlScreenState extends State<ControlScreen>
   @override
   Widget build(BuildContext context) {
     final idiomaController = Provider.of<IdiomaController>(context);
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
+    // Ajuste dinámico del fondo según la pantalla
+    double fondoWidth = screenWidth * 0.85;
+    double fondoHeight = fondoWidth * 0.5;
+
     return Scaffold(
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // Header
           Positioned(
             top: 0,
-            width: MediaQuery.of(context).size.width,
+            width: screenWidth,
             child: Container(
-              height: 150,
+              height: 160,
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage("assets/images/header.png"),
@@ -144,7 +196,6 @@ class _ControlScreenState extends State<ControlScreen>
             ),
           ),
 
-          // Botón de regreso
           Positioned(
             top: 50,
             left: 10,
@@ -154,42 +205,48 @@ class _ControlScreenState extends State<ControlScreen>
             ),
           ),
 
-          // Fondo del teclado
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.34,
+            top: screenHeight * 0.34,
             child: Image.asset(
               "assets/images/Teclado/Principal/fondoPrincipal.png",
-              width: MediaQuery.of(context).size.width * 0.9,
+              width: fondoWidth,
+              height: fondoHeight,
               fit: BoxFit.contain,
             ),
           ),
 
-          // Botones sobre el fondo
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.35,
+            top: screenHeight * 0.36,
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-
                     GestureDetector(
                       onTapDown: (_) => _controller.toggleWail(),
                       onTapUp: (_) => _controller.toggleWail(),
                       onTapCancel: () => _controller.toggleWail(),
                       child: Image.asset(
                         "assets/images/Teclado/Principal/wail.png",
-                        width: 90,
-                        height: 65,
+                        width: fondoWidth * 0.25,
+                        height: fondoHeight * 0.35,
+                      ),
                     ),
+                    _buildButton(
+                      "assets/images/Teclado/Principal/sirena.png",
+                      _controller.activateSiren,
+                      width: fondoWidth * 0.40,
+                      height: fondoHeight * 0.4,
                     ),
-
-                    _buildButton("assets/images/Teclado/Principal/sirena.png",
-                        _controller.activateSiren, width: 130, height: 70),
-                    _buildButton("assets/images/Teclado/Principal/intercomunicador.png",
-                        _controller.activateInter, width: 90, height: 65),
+                    _buildButton(
+                      "assets/images/Teclado/Principal/intercomunicador.png",
+                      _controller.activateInter,
+                      width: fondoWidth * 0.25,
+                      height: fondoHeight * 0.35,
+                    ),
                   ],
                 ),
+                const SizedBox(height: 5),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -199,32 +256,35 @@ class _ControlScreenState extends State<ControlScreen>
                       onTapCancel: () => _controller.toggleHorn(),
                       child: Image.asset(
                         "assets/images/Teclado/Principal/horn.png",
-                        width: 100,
-                        height: 60,
+                        width: fondoWidth * 0.25,
+                        height: fondoHeight * 0.35,
                       ),
                     ),
-                    _buildButton("assets/images/Teclado/Principal/auxiliar.png",
-                        _controller.activateAux, width: 120, height: 80),
+                    _buildButton(
+                      "assets/images/Teclado/Principal/auxiliar.png",
+                      _controller.activateAux,
+                      width: fondoWidth * 0.35,
+                      height: fondoHeight * 0.3,
+                    ),
                     GestureDetector(
                       onTapDown: (_) => _controller.togglePTT(),
                       onTapUp: (_) => _controller.togglePTT(),
-                      onTapCancel: () => _controller.togglePTT(),
+                    onTapCancel: () => _controller.togglePTT(),
                       child: Image.asset(
                         "assets/images/Teclado/Principal/ptt.png",
-                        width: 100,
-                        height: 60,
+                        width: fondoWidth * 0.25,
+                        height: fondoHeight * 0.35,
                       ),
                     ),
+
                   ],
                 ),
-
               ],
             ),
           ),
 
-          // Imagen de selección de modo (con animación)
           Positioned(
-            bottom: 270,
+            bottom: 200,
             child: GestureDetector(
               onTap: _toggleMode,
               child: FadeTransition(
@@ -233,8 +293,26 @@ class _ControlScreenState extends State<ControlScreen>
                   _isPWMode
                       ? "assets/images/Teclado/Principal/pw:config.png"
                       : "assets/images/Teclado/Config/config:pw.png",
-                  width: MediaQuery.of(context).size.width * 0.71,
+                  width: screenWidth * 0.60,
                 ),
+              ),
+            ),
+          ),
+
+          // Botón de Desconectar debajo del selector de teclado
+          // Botón de Desconectar debajo del selector de teclado
+          Positioned(
+            bottom: 60, // 📌 Ajusta la posición según el diseño
+            child: GestureDetector(
+              onTap: () async => await _disconnectAndReturnHome(),
+              child: Image.asset(
+                _getLocalizedButtonImage(
+                  "Desconectar",
+                  idiomaController.locale.languageCode,
+                ), // ✅ Usa la imagen en el idioma correcto
+                width:
+                    MediaQuery.of(context).size.width *
+                    0.5, // 📏 Ajuste dinámico
               ),
             ),
           ),
@@ -243,24 +321,20 @@ class _ControlScreenState extends State<ControlScreen>
     );
   }
 
-
-
-  /// **Función para construir botones con tamaños personalizados**
-  Widget _buildButton(String assetPath, VoidCallback onPressed,
-      {VoidCallback? onTap, double width = 100, double height = 70}) {
+  Widget _buildButton(
+    String assetPath,
+    VoidCallback onPressed, {
+    double width = 100,
+    double height = 70,
+  }) {
     return GestureDetector(
-      onTap: _isReconnecting ? null : onPressed,
-      onTapDown: _isReconnecting ? null : (_) => onTap?.call(),
-      onTapUp: _isReconnecting ? null : (_) => onTap?.call(),
-      onTapCancel: _isReconnecting ? null : () => onTap?.call(),
-      child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 3), // Espacio entre botones
+      onTap: onPressed,
+      child: Image.asset(
+        assetPath,
         width: width,
         height: height,
-        child: Image.asset(assetPath, fit: BoxFit.contain),
+        fit: BoxFit.contain,
       ),
     );
   }
-
-
 }

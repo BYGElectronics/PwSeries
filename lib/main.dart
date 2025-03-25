@@ -21,6 +21,7 @@ import 'package:pw/src/Controller/text_size_controller.dart';
 
 // Importaciones relacionadas con la localización (traducción de textos).
 import 'package:pw/src/localization/app_localization.dart';
+import 'package:pw/src/pages/controlConfig.dart';
 
 // Importaciones de las pantallas/ páginas que conforman la UI de la app.
 import 'package:pw/src/pages/control_screen.dart';
@@ -158,6 +159,7 @@ class _MyAppState extends State<MyApp> {
         // Pantalla para cambiar el idioma
         "idioma": (context) => IdiomaScreen(),
 
+
         "control": (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is BluetoothDevice && args.platformName.contains("Pw")) {
@@ -173,6 +175,9 @@ class _MyAppState extends State<MyApp> {
             );
           }
         },
+
+
+        "/controlConfig": (context) => ControlConfigScreen(), // Teclado configuración
 
 
 

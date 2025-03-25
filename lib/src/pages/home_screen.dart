@@ -13,6 +13,7 @@ import '../Controller/idioma_controller.dart'; // Manejo de internacionalizació
 // Esta pantalla permite activar y buscar dispositivos Bluetooth,
 // cambiar el modo de tema (oscuro/claro) y acceder a la configuración.
 class HomeScreen extends StatefulWidget {
+
   // **Parámetro para alternar el modo de tema (oscuro/claro)**
   final VoidCallback toggleTheme;
 
@@ -62,13 +63,18 @@ class _HomeScreenState extends State<HomeScreen> {
         Theme.of(context).textTheme.bodyMedium?.color ??
         Colors.white; // ✅ Se adapta al modo oscuro SOLO para textos
     final idiomaController = Provider.of<IdiomaController>(context);
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
+    // 🔹 Ajustes dinámicos del header
+    double headerHeight = screenHeight * 0.18; //
 
     return Scaffold(
       body: Stack(
         children: [
           Container(
             width: double.infinity,
-            height: 150,
+            height: 140,
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage("assets/images/header.png"),

@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart'; // Permite acceder a director
 import 'dart:io'; // Proporciona herramientas para manipulación de archivos y operaciones en el sistema de archivos.
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Maneja la comunicación con dispositivos Bluetooth Low Energy (BLE).
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
-    as btClassic; // Biblioteca para manejar Bluetooth Classic, utilizado para conexiones seriales.
+as btClassic; // Biblioteca para manejar Bluetooth Classic, utilizado para conexiones seriales.
 
 class ControlController {
   BluetoothDevice?
@@ -17,9 +17,9 @@ class ControlController {
   BluetoothCharacteristic?
   targetCharacteristic; //Característica BLE de escritura. | Se usa para enviar comandos al dispositivo BLE.
   final FlutterSoundRecorder _recorder =
-      FlutterSoundRecorder(); //Grabador de audio para manejar la funcionalidad de PTT (Push-to-Talk). | Permite iniciar y detener la grabación de audio.
+  FlutterSoundRecorder(); //Grabador de audio para manejar la funcionalidad de PTT (Push-to-Talk). | Permite iniciar y detener la grabación de audio.
   bool isPTTActive =
-      false; //Estado del botón PTT. | Indica si el PTT está activado o desactivado.
+  false; //Estado del botón PTT. | Indica si el PTT está activado o desactivado.
 
   ///===CONFIGURAR DISPOSITIVO CONECTADO===
   /*
@@ -107,10 +107,10 @@ class ControlController {
 
     // Convertir la lista de bytes en una cadena de texto hexadecimal ASCII.
     String asciiCommand =
-        command
-            .map((e) => e.toRadixString(16).padLeft(2, '0'))
-            .join('')
-            .toUpperCase();
+    command
+        .map((e) => e.toRadixString(16).padLeft(2, '0'))
+        .join('')
+        .toUpperCase();
 
     // Convierte la cadena en un arreglo de bytes ASCII.
     List<int> asciiBytes = asciiCommand.codeUnits;
@@ -536,10 +536,10 @@ class ControlController {
       targetCharacteristic!.value.listen((response) {
         // Convierte la respuesta (lista de bytes) a su representación hex
         String hexResponse =
-            response
-                .map((e) => e.toRadixString(16).padLeft(2, '0'))
-                .join(' ')
-                .toUpperCase();
+        response
+            .map((e) => e.toRadixString(16).padLeft(2, '0'))
+            .join(' ')
+            .toUpperCase();
         debugPrint("Respuesta del hardware: $hexResponse");
 
         // Valida si la respuesta tiene al menos 6 bytes para extraer información
