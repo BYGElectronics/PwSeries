@@ -159,7 +159,6 @@ class _MyAppState extends State<MyApp> {
         // Pantalla para cambiar el idioma
         "idioma": (context) => IdiomaScreen(),
 
-
         "control": (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is BluetoothDevice && args.platformName.contains("Pw")) {
@@ -176,11 +175,16 @@ class _MyAppState extends State<MyApp> {
           }
         },
 
-
-        "/controlConfig": (context) => ControlConfigScreen(), // Teclado configuración
-
-
-
+        '/controlConfig': (context) {
+          final args =
+              ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>? ??
+              {};
+          return ControlConfigScreen(
+            connectedDevice: args['device'],
+            controller: args['controller'],
+          );
+        },
       },
     );
   }

@@ -1,9 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../Controller/control_controller.dart';
 import '../Controller/idioma_controller.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-class ControlConfigScreen extends StatelessWidget {
-  const ControlConfigScreen({Key? key}) : super(key: key);
+class ControlConfigScreen extends StatefulWidget {
+  final BluetoothDevice connectedDevice;
+  final ControlController controller;
+
+  const ControlConfigScreen({
+    Key? key,
+    required this.connectedDevice,
+    required this.controller,
+  }) : super(key: key);
+
+  @override
+  State<ControlConfigScreen> createState() => _ControlConfigScreenState();
+}
+
+class _ControlConfigScreenState extends State<ControlConfigScreen>
+    with SingleTickerProviderStateMixin {
+  late final BluetoothDevice _device;
+  late final ControlController _controller;
+
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  bool _isPWMode = false;
+  bool _manualDisconnect = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _device = widget.connectedDevice;
+    _controller = widget.controller;
+
+    _controller.setDevice(_device);
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.0,
+    ).animate(_animationController);
+  }
+
+  String _getLocalizedButtonImage(String buttonName, String locale) {
+    String folder = "assets/images/Botones";
+    switch (locale) {
+      case "es":
+        return "$folder/Espanol/$buttonName.png";
+      case "fr":
+        return "$folder/Frances/${buttonName}_3.png";
+      case "en":
+        return "$folder/Ingles/${buttonName}_1.png";
+      case "pt":
+        return "$folder/Portugues/${buttonName}_2.png";
+      default:
+        return "$folder/Espanol/$buttonName.png";
+    }
+  }
+
+  void _toggleMode() {
+    _animationController.forward().then((_) {
+      setState(() {
+        // Aquí podrías volver al modo principal si lo deseas
+      });
+      _animationController.reverse();
+    });
+  }
+
+  Future<void> _disconnectAndReturnHome() async {
+    widget.controller.disconnectDevice();
+    if (mounted) {
+      Navigator.popUntil(context, ModalRoute.withName("home"));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,14 +85,10 @@ class ControlConfigScreen extends StatelessWidget {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
 
-    // 🔹 Ajustes dinámicos del header
-    double headerHeight = screenHeight * 0.16; // 18% de la pantalla
-
-    // Ajuste dinámico del fondo según la pantalla
+    // Inicializa los tamaños
+    double headerHeight = screenHeight * 0.16;
     double fondoWidth = screenWidth * 0.85;
     double fondoHeight = fondoWidth * 0.5;
-
-    // Ajuste dinámico de los botones
     double buttonWidth = fondoWidth * 0.38;
     double buttonHeight = fondoHeight * 0.35;
     double buttonSpacing = screenHeight * 0.02;
@@ -27,7 +97,7 @@ class ControlConfigScreen extends StatelessWidget {
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // 🔹 Header Responsivo
+          // 🔹 Header
           Positioned(
             top: 0,
             width: screenWidth,
@@ -41,7 +111,8 @@ class ControlConfigScreen extends StatelessWidget {
               ),
             ),
           ),
-          // 🔹 Botón de regreso
+
+          // 🔙 Botón Regresar
           Positioned(
             top: 50,
             left: 10,
@@ -51,7 +122,7 @@ class ControlConfigScreen extends StatelessWidget {
             ),
           ),
 
-          // 🔹 Fondo del teclado
+          // 🧱 Fondo
           Positioned(
             top: screenHeight * 0.34,
             child: Image.asset(
@@ -62,7 +133,7 @@ class ControlConfigScreen extends StatelessWidget {
             ),
           ),
 
-          // 🔹 Botones sobre el fondo (Distribución en cuadrícula)
+          // 🔘 Botones
           Positioned(
             top: screenHeight * 0.36,
             child: Column(
@@ -75,7 +146,9 @@ class ControlConfigScreen extends StatelessWidget {
                       buttonWidth,
                       buttonHeight,
                       () {
-                        print("Botón Cambio Luces & Aux presionado");
+                        if (_controller.connectedDevice != null) {
+                          _controller.switchAuxLights();
+                        }
                       },
                     ),
                     _buildButton(
@@ -83,7 +156,9 @@ class ControlConfigScreen extends StatelessWidget {
                       buttonWidth,
                       buttonHeight,
                       () {
-                        print("Botón Sinc. Luces y Aux presionado");
+                        if (_controller.connectedDevice != null) {
+                          _controller.syncLightsWithSiren();
+                        }
                       },
                     ),
                   ],
@@ -96,14 +171,20 @@ class ControlConfigScreen extends StatelessWidget {
                       "assets/images/Teclado/Config/cambioHorn.png",
                       buttonWidth,
                       buttonHeight,
-                      () {},
+                      () {
+                        if (_controller.connectedDevice != null) {
+                          _controller.changeHornTone();
+                        }
+                      },
                     ),
                     _buildButton(
                       "assets/images/Teclado/Config/Autoajuste.png",
                       buttonWidth,
                       buttonHeight,
                       () {
-                        print("Botón Autoajuste presionado");
+                        if (_controller.connectedDevice != null) {
+                          _controller.autoAdjustPA();
+                        }
                       },
                     ),
                   ],
@@ -111,12 +192,63 @@ class ControlConfigScreen extends StatelessWidget {
               ],
             ),
           ),
+
+          Positioned(
+            bottom: 200,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pop(context); // 👈 Regresa al teclado principal
+              },
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Image.asset(
+                  "assets/images/Teclado/Config/config:pw.png",
+                  width: screenWidth * 0.60,
+                ),
+              ),
+            ),
+          ),
+
+          // Botón de Desconectar debajo del selector de teclado
+          // Botón de Desconectar debajo del selector de teclado
+          Positioned(
+            bottom: 60, // 📌 Ajusta la posición según el diseño
+            child: GestureDetector(
+              onTap: () async => await _disconnectAndReturnHome(),
+              child: Image.asset(
+                _getLocalizedButtonImage(
+                  "Desconectar",
+                  idiomaController.locale.languageCode,
+                ), // ✅ Usa la imagen en el idioma correcto
+                width:
+                    MediaQuery.of(context).size.width *
+                    0.5, // 📏 Ajuste dinámico
+              ),
+            ),
+          ),
+
+          // Botón de Desconectar debajo del selector de teclado
+          Positioned(
+            bottom: 60, // 📌 Ajusta la posición según el diseño
+            child: GestureDetector(
+              onTap: () async => await _disconnectAndReturnHome(),
+              child: Image.asset(
+                _getLocalizedButtonImage(
+                  "Desconectar",
+                  idiomaController.locale.languageCode,
+                ), // ✅ Usa la imagen en el idioma correcto
+                width:
+                    MediaQuery.of(context).size.width *
+                    0.5, // 📏 Ajuste dinámico
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  /// **Función para construir botones con tamaños personalizados**
+  /// Constructor de botones personalizados
   Widget _buildButton(
     String assetPath,
     double width,
@@ -126,9 +258,7 @@ class ControlConfigScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        margin: const EdgeInsets.symmetric(
-          horizontal: 5,
-        ), // Espacio entre botones
+        margin: const EdgeInsets.symmetric(horizontal: 5),
         width: width,
         height: height,
         child: Image.asset(assetPath, fit: BoxFit.contain),

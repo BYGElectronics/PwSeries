@@ -1,5 +1,6 @@
 import 'dart:async'; // Proporciona herramientas para trabajar con programación asíncrona, como Future y Stream.
 import 'package:flutter/material.dart'; // Framework principal de Flutter para construir interfaces de usuario.
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' as Ble;
 import 'package:permission_handler/permission_handler.dart'; // Maneja permisos en tiempo de ejecución para acceder a hardware y funciones del dispositivo.
 import 'package:flutter_sound/flutter_sound.dart'; // Biblioteca para grabación y reproducción de audio.
 import 'dart:typed_data'; // Proporciona listas de bytes eficientes para manipulación de datos binarios.
@@ -7,7 +8,7 @@ import 'package:path_provider/path_provider.dart'; // Permite acceder a director
 import 'dart:io'; // Proporciona herramientas para manipulación de archivos y operaciones en el sistema de archivos.
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Maneja la comunicación con dispositivos Bluetooth Low Energy (BLE).
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
-as btClassic; // Biblioteca para manejar Bluetooth Classic, utilizado para conexiones seriales.
+    as btClassic; // Biblioteca para manejar Bluetooth Classic, utilizado para conexiones seriales.
 
 class ControlController {
   BluetoothDevice?
@@ -17,9 +18,9 @@ class ControlController {
   BluetoothCharacteristic?
   targetCharacteristic; //Característica BLE de escritura. | Se usa para enviar comandos al dispositivo BLE.
   final FlutterSoundRecorder _recorder =
-  FlutterSoundRecorder(); //Grabador de audio para manejar la funcionalidad de PTT (Push-to-Talk). | Permite iniciar y detener la grabación de audio.
+      FlutterSoundRecorder(); //Grabador de audio para manejar la funcionalidad de PTT (Push-to-Talk). | Permite iniciar y detener la grabación de audio.
   bool isPTTActive =
-  false; //Estado del botón PTT. | Indica si el PTT está activado o desactivado.
+      false; //Estado del botón PTT. | Indica si el PTT está activado o desactivado.
 
   ///===CONFIGURAR DISPOSITIVO CONECTADO===
   /*
@@ -107,10 +108,10 @@ class ControlController {
 
     // Convertir la lista de bytes en una cadena de texto hexadecimal ASCII.
     String asciiCommand =
-    command
-        .map((e) => e.toRadixString(16).padLeft(2, '0'))
-        .join('')
-        .toUpperCase();
+        command
+            .map((e) => e.toRadixString(16).padLeft(2, '0'))
+            .join('')
+            .toUpperCase();
 
     // Convierte la cadena en un arreglo de bytes ASCII.
     List<int> asciiBytes = asciiCommand.codeUnits;
@@ -316,14 +317,6 @@ class ControlController {
       }
 
       // 2. Realiza la conexión Bluetooth Classic de manera dinámica usando la dirección MAC
-      String macAddress = deviceAddress; // Propiedad donde guardas la MAC
-      if (macAddress.isEmpty) {
-        debugPrint(
-          '❌ Dirección MAC no disponible. No se puede conectar al modo Classic.',
-        );
-        return;
-      }
-      await _activateBluetoothClassic(macAddress);
 
       // 3. Solicita permiso de micrófono para enviar audio por Classic
       if (await _requestMicrophonePermission()) {
@@ -527,60 +520,108 @@ class ControlController {
    * - Convierte la respuesta recibida a hexadecimal legible.
    * - Extrae el comando y el CRC para evaluar el estado reportado por el dispositivo.
    */
-  void listenForResponses() {
-    // Verifica que la característica de notificación exista
-    if (targetCharacteristic != null) {
-      // Activa la recepción de notificaciones en la característica
-      targetCharacteristic!.setNotifyValue(true);
-      // Escucha los cambios de valor (las notificaciones)
-      targetCharacteristic!.value.listen((response) {
-        // Convierte la respuesta (lista de bytes) a su representación hex
-        String hexResponse =
-        response
-            .map((e) => e.toRadixString(16).padLeft(2, '0'))
-            .join(' ')
-            .toUpperCase();
-        debugPrint("Respuesta del hardware: $hexResponse");
 
-        // Valida si la respuesta tiene al menos 6 bytes para extraer información
-        if (response.length >= 6) {
-          // Extrae el comando (por convención, bytes 3-5)
-          String command = hexResponse.substring(3, 5);
-          // Extrae el CRC (los últimos 4 caracteres hex en el string)
-          String crc = hexResponse.substring(hexResponse.length - 4);
+  // ================================
+  // NUEVAS FUNCIONES IMPLEMENTADAS
+  // ================================
 
-          // Lógica de validación según documento
-          if (command == "18" && crc == "3733") {
-            debugPrint("Estado del sistema: DataOK");
-          } else if (command == "22" && crc == "D45A") {
-            debugPrint("Estado del sistema: DataFail");
-          } else if (command == "33" && crc == "B8CA") {
-            debugPrint("Estado del sistema: CRC error");
-          } else {
-            debugPrint("Estado desconocido: $hexResponse");
-          }
+  /// **Cambiar Aux a Luces / Luces a Aux**
+  void switchAuxLights() {
+    List<int> frame = [0xAA, 0x14, 0x24, 0x44];
+    frame.addAll([0x77, 0x39]); // CRC FORZADO
+    frame.add(0xFF);
+    sendCommand(frame);
+  }
+
+  /// **Cambiar Tono de Horn**
+  void changeHornTone() {
+    List<int> frame = [0xAA, 0x14, 0x25, 0x44];
+    frame.addAll([0xB7, 0x68]); // CRC FORZADO
+    frame.add(0xFF);
+    sendCommand(frame);
+  }
+
+  /// **Sincronizar / Desincronizar luces con sirena**
+  void syncLightsWithSiren() {
+    List<int> frame = [0xAA, 0x14, 0x26, 0x44];
+    frame.addAll([0xB7, 0x98]); // CRC FORZADO
+    frame.add(0xFF);
+    sendCommand(frame);
+  }
+
+  /// **Autoajuste PA**
+  void autoAdjustPA() {
+    List<int> frame = [0xAA, 0x14, 0x27, 0x44];
+    frame.addAll([0x77, 0xC9]); // CRC FORZADO
+    frame.add(0xFF);
+    sendCommand(frame);
+    debugPrint("⏳ Esperar 30 segundos para el autoajuste PA.");
+  }
+
+  /// **Escuchar respuestas del hardware**
+  void listenForResponses(Ble.BluetoothCharacteristic characteristic) {
+    characteristic.setNotifyValue(true);
+    characteristic.value.listen((response) {
+      String hexResponse =
+          response
+              .map((e) => e.toRadixString(16).padLeft(2, '0'))
+              .join(' ')
+              .toUpperCase();
+      debugPrint("📩 Respuesta recibida: $hexResponse");
+
+      if (response.length >= 6) {
+        String command = hexResponse.substring(3, 5);
+        String crc = hexResponse.substring(hexResponse.length - 4);
+
+        switch (command) {
+          case "18":
+            if (crc == "3733") debugPrint("✅ Estado del sistema: DataOK");
+            break;
+          case "22":
+            if (crc == "D45A") debugPrint("⚠️ Estado del sistema: DataFail");
+            break;
+          case "33":
+            if (crc == "B8CA") debugPrint("❌ Estado del sistema: CRC error");
+            break;
+          case "24":
+            debugPrint("🔁 Cambio Aux/Luces recibido");
+            break;
+          case "25":
+            debugPrint("🔊 Cambio Tono Horn recibido");
+            break;
+          case "26":
+            debugPrint("💡 Sincronización luces/sirena recibida");
+            break;
+          case "27":
+            debugPrint("🔄 Autoajuste PA recibido");
+            break;
+          case "13":
+            debugPrint("💡 Función Luz Activa");
+            break;
+          case "14":
+            debugPrint("🔋 Batería Completa / Carro encendido");
+            break;
+          case "15":
+            debugPrint("🔋 Batería Media / Carro apagado");
+            break;
+          case "16":
+            debugPrint("⚠️ Batería Baja");
+            break;
+          default:
+            debugPrint("❓ Estado desconocido: $command");
         }
-      });
-    }
-  } //FIN listenForResponses
+      }
+    });
+  }
 
-  /*
-   * Desconecta el dispositivo BLE actual si está conectado.
-   * - Llama a .disconnect() en la instancia de BluetoothDevice.
-   * - Limpia la referencia a connectedDevice.
-   */
+  /// **Desconectar Dispositivo**
   void disconnectDevice() async {
-    // Verifica la conexión antes de desconectar
     if (connectedDevice != null) {
       await connectedDevice!.disconnect();
-      debugPrint("Dispositivo desconectado.");
+      debugPrint("🔴 Dispositivo desconectado.");
       connectedDevice = null;
     }
-  } //FIN disconnectDevice
+  }
+}
 
-  /*
-   * Devuelve la dirección MAC o ID remoto del dispositivo conectado en modo BLE.
-   * - Puede usarse para obtener la dirección y posteriormente intentar una conexión Classic.
-   */
-  String get deviceAddress => connectedDevice?.remoteId.str ?? '';
-} //FIN ControlController
+//FIN ControlController

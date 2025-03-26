@@ -6,14 +6,9 @@ import 'package:pw/src/Controller/control_controller.dart';
 import 'package:pw/src/Controller/home_controller.dart';
 import '../Controller/idioma_controller.dart';
 
-
-
-
 class ControlScreen extends StatefulWidget {
   final BluetoothDevice connectedDevice;
   final ControlController controller;
-
-
 
   const ControlScreen({
     Key? key,
@@ -34,13 +29,8 @@ class _ControlScreenState extends State<ControlScreen>
   bool _manualDisconnect = false;
   final ControlController _controller = ControlController();
 
-
-
-
-
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-
 
   /// **Función para obtener la imagen del botón según el idioma**
   String _getLocalizedButtonImage(String buttonName, String locale) {
@@ -59,7 +49,6 @@ class _ControlScreenState extends State<ControlScreen>
         return "$folder/Espanol/$buttonName.png";
     }
   }
-
 
   /// **Monitoreo de la conexión BLE**
   void _monitorConnection() {
@@ -98,7 +87,6 @@ class _ControlScreenState extends State<ControlScreen>
     }
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -107,13 +95,14 @@ class _ControlScreenState extends State<ControlScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _fadeAnimation =
-        Tween<double>(begin: 1.0, end: 0.0).animate(_animationController);
+    _fadeAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.0,
+    ).animate(_animationController);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _controller.setDevice(widget.connectedDevice);
     });
   }
-
 
   @override
   void dispose() {
@@ -151,18 +140,27 @@ class _ControlScreenState extends State<ControlScreen>
 
   void _toggleMode() {
     _animationController.forward().then((_) {
+      final wasPWMode = _isPWMode; // 👈 Guardamos estado actual
       setState(() {
         _isPWMode = !_isPWMode;
       });
       _animationController.reverse();
 
       Future.delayed(const Duration(milliseconds: 10), () {
-        if (_isPWMode) {
-          debugPrint("🔵 Navegando al teclado principal (PW)");
-        } else {
+        if (wasPWMode) {
+          // Si venimos de PW, vamos a config
           debugPrint("⚙️ Navegando al teclado de configuración");
-          Navigator.pushNamed(context, "/controlConfig"); // ⚡ Ir al teclado configuración
-
+          Navigator.pushNamed(
+            context,
+            "/controlConfig",
+            arguments: {
+              "device": widget.connectedDevice,
+              "controller": _controller,
+            },
+          );
+        } else {
+          // Si venimos de config, solo vuelve a PW (ya está en esta pantalla)
+          debugPrint("🔵 Navegando al teclado principal (PW)");
         }
       });
     });
@@ -269,14 +267,13 @@ class _ControlScreenState extends State<ControlScreen>
                     GestureDetector(
                       onTapDown: (_) => _controller.togglePTT(),
                       onTapUp: (_) => _controller.togglePTT(),
-                    onTapCancel: () => _controller.togglePTT(),
+                      onTapCancel: () => _controller.togglePTT(),
                       child: Image.asset(
                         "assets/images/Teclado/Principal/ptt.png",
                         width: fondoWidth * 0.25,
                         height: fondoHeight * 0.35,
                       ),
                     ),
-
                   ],
                 ),
               ],
@@ -290,9 +287,7 @@ class _ControlScreenState extends State<ControlScreen>
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Image.asset(
-                  _isPWMode
-                      ? "assets/images/Teclado/Principal/pw:config.png"
-                      : "assets/images/Teclado/Config/config:pw.png",
+                  "assets/images/Teclado/Principal/pw:config.png", // 👈 Siempre este en el principal
                   width: screenWidth * 0.60,
                 ),
               ),
