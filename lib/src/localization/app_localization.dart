@@ -44,6 +44,10 @@ class AppLocalizations {
       'adjust_text_size': 'Ajusta el tamaño del texto',
       'preview_text': 'Texto de ejemplo',
 
+      "horn_change_msg": "Cambiando Tono Horn",
+      "switch_lights_aux_mode": "Cambiando a modo luces / Auxiliar",
+      "sync_lights_with_siren": "Sincronizando / Desincronizando Luces con Sirenas",
+      "autoajuste_pa_msg": "Esperar 30 segundos para el autoajuste PA"
 
     },
     'en': {
@@ -73,7 +77,14 @@ class AppLocalizations {
       'intercom': 'Intercom',
       'ptt': 'PTT',
       'system_status': 'System Status',
-    },
+
+      "horn_change_msg": "Changing Horn Tone",
+      "switch_lights_aux_mode": "Switching to lights / auxiliary mode",
+      "sync_lights_with_siren": "Syncing / Unsyncing Lights with Sirens",
+      "autoajuste_pa_msg": "Waiting 30 seconds for PA auto-adjustment"
+
+
+},
     'pt': {
       'title': 'Bem-vindo',
       'language': 'Linguagem',
@@ -101,6 +112,13 @@ class AppLocalizations {
       'intercom': 'Interfone',
       'ptt': 'PTT',
       'system_status': 'Status do sistema',
+
+      "horn_change_msg": "Trocando Tom da Buzina",
+      "switch_lights_aux_mode": "Trocando para Modo de Luzes / Auxiliar",
+      "sync_lights_with_siren": "Sincronizando / Desincronizando Luzes com Sirenas",
+      "autoajuste_pa_msg": "Aguardando 30 segundos para o ajuste automático de PA"
+
+
     },
     'fr': {
       'title': 'Bienvenue',
@@ -129,6 +147,12 @@ class AppLocalizations {
       'intercom': 'Interphone',
       'ptt': 'PTT',
       'system_status': 'État du système',
+
+      "horn_change_msg": "Changement de la tonalité du klaxon",
+      "switch_lights_aux_mode": "Changement en mode de lumières / auxiliaire",
+      "sync_lights_with_siren": "Synchronisation / Dé-synchronisation des lumières avec les sirènes",
+      "autoajuste_pa_msg": "Attente de 30 secondes pour l'ajuste automatique de PA"
+
     },
   };
 

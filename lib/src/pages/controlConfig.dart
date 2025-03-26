@@ -4,6 +4,8 @@ import '../Controller/control_controller.dart';
 import '../Controller/idioma_controller.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
+import '../localization/app_localization.dart';
+
 class ControlConfigScreen extends StatefulWidget {
   final BluetoothDevice connectedDevice;
   final ControlController controller;
@@ -18,20 +20,27 @@ class ControlConfigScreen extends StatefulWidget {
   State<ControlConfigScreen> createState() => _ControlConfigScreenState();
 }
 
-class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTickerProviderStateMixin {
+class _ControlConfigScreenState extends State<ControlConfigScreen>
+    with SingleTickerProviderStateMixin {
   late final BluetoothDevice _device;
   late final ControlController _controller;
+  String batteryStatusImage = "assets/images/Estados/battery_full.png"; // Valor por defecto
+
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   bool _isPWMode = false;
   bool _manualDisconnect = false;
+  bool _isHorn1 = true;
+  bool _isLuces = true;
 
   @override
   void initState() {
     super.initState();
     _device = widget.connectedDevice;
     _controller = widget.controller;
+
+
 
     _controller.setDevice(_device);
 
@@ -44,7 +53,6 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
       begin: 1.0,
       end: 0.0,
     ).animate(_animationController);
-
   }
 
   String _getLocalizedButtonImage(String buttonName, String locale) {
@@ -63,7 +71,6 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
     }
   }
 
-
   void _toggleMode() {
     _animationController.forward().then((_) {
       _animationController.reverse();
@@ -81,14 +88,12 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
     });
   }
 
-
   Future<void> _disconnectAndReturnHome() async {
     widget.controller.disconnectDevice();
     if (mounted) {
       Navigator.popUntil(context, ModalRoute.withName("home"));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -124,6 +129,26 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
           ),
 
 
+          Positioned(
+            top: 50,
+            left: 10,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, size: 30, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+
+          // 🔋 Aquí colocas la batería:
+          Positioned(
+            top: 40,
+            right: 20,
+            child: Image.asset(
+              _controller.batteryImagePath,
+              width: 40,
+              height: 40,
+            ),
+          ),
+
           // 🧱 Fondo
           Positioned(
             top: screenHeight * 0.34,
@@ -150,9 +175,21 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
                       () {
                         if (_controller.connectedDevice != null) {
                           _controller.switchAuxLights();
+
+                          final mensaje = AppLocalizations.of(
+                            context,
+                          )!.translate("switch_lights_aux_mode");
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("💡 $mensaje"),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                         }
                       },
                     ),
+
                     _buildButton(
                       "assets/images/Teclado/Config/sincLucesyAux.png",
                       buttonWidth,
@@ -160,6 +197,17 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
                       () {
                         if (_controller.connectedDevice != null) {
                           _controller.syncLightsWithSiren();
+
+                          final mensaje = AppLocalizations.of(
+                            context,
+                          )!.translate("sync_lights_with_siren");
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("🔄 $mensaje"),
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
                         }
                       },
                     ),
@@ -176,9 +224,22 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
                       () {
                         if (_controller.connectedDevice != null) {
                           _controller.changeHornTone();
+
+                          // Obtener el mensaje traducido
+                          final mensaje = AppLocalizations.of(
+                            context,
+                          )!.translate("horn_change_msg");
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("🎺 $mensaje"),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                         }
                       },
                     ),
+
                     _buildButton(
                       "assets/images/Teclado/Config/Autoajuste.png",
                       buttonWidth,
@@ -186,6 +247,17 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
                       () {
                         if (_controller.connectedDevice != null) {
                           _controller.autoAdjustPA();
+
+                          final mensaje = AppLocalizations.of(
+                            context,
+                          )!.translate("autoajuste_pa_msg");
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("⏳ $mensaje"),
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
                         }
                       },
                     ),
@@ -209,9 +281,6 @@ class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTi
             ),
           ),
 
-
-
-          // Botón de Desconectar debajo del selector de teclado
           // Botón de Desconectar debajo del selector de teclado
           Positioned(
             bottom: 60, // 📌 Ajusta la posición según el diseño

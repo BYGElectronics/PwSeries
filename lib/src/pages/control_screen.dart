@@ -90,6 +90,10 @@ class _ControlScreenState extends State<ControlScreen>
   @override
   void initState() {
     super.initState();
+
+    _controller.setDevice(widget.connectedDevice);
+    _controller.startBatteryStatusMonitoring();
+
     _monitorConnection();
     _animationController = AnimationController(
       vsync: this,
@@ -102,12 +106,33 @@ class _ControlScreenState extends State<ControlScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _controller.setDevice(widget.connectedDevice);
     });
+
+    // Envía el protocolo de estado del sistema para verificar nivel de batería
+    _controller.requestSystemStatus();
   }
+
+  Widget _buildBatteryIcon() {
+    String image;
+    switch (_controller.batteryLevel) {
+      case BatteryLevel.full:
+        image = "assets/images/Estados/battery_full.png";
+        break;
+      case BatteryLevel.medium:
+        image = "assets/images/Estados/battery_medium.png";
+        break;
+      case BatteryLevel.low:
+        image = "assets/images/Estados/battery_low.png";
+        break;
+    }
+    return Image.asset(image, width: 60);
+  }
+
 
   @override
   void dispose() {
     _connectionSubscription?.cancel();
     _animationController.dispose();
+    _controller.stopBatteryStatusMonitoring();
     super.dispose();
   }
 
@@ -186,6 +211,7 @@ class _ControlScreenState extends State<ControlScreen>
     double fondoWidth = screenWidth * 0.85;
     double fondoHeight = fondoWidth * 0.5;
 
+
     return Scaffold(
       body: Stack(
         alignment: Alignment.center,
@@ -203,6 +229,21 @@ class _ControlScreenState extends State<ControlScreen>
               ),
             ),
           ),
+
+          Positioned(
+            top: 50,
+            left: 10,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, size: 30, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          Positioned(
+            top: 20,
+            right: 20,
+            child: _buildBatteryIcon(),
+          ),
+
 
           Positioned(
             top: 50,

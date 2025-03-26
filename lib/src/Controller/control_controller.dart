@@ -1,4 +1,5 @@
 import 'dart:async'; // Proporciona herramientas para trabajar con programación asíncrona, como Future y Stream.
+import 'dart:convert';
 import 'package:flutter/material.dart'; // Framework principal de Flutter para construir interfaces de usuario.
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as Ble;
 import 'package:permission_handler/permission_handler.dart'; // Maneja permisos en tiempo de ejecución para acceder a hardware y funciones del dispositivo.
@@ -10,7 +11,9 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Maneja la comunica
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
     as btClassic; // Biblioteca para manejar Bluetooth Classic, utilizado para conexiones seriales.
 
-class ControlController {
+enum BatteryLevel { full, medium, low }
+
+class ControlController extends ChangeNotifier {
   BluetoothDevice?
   connectedDevice; //Dispositivo BLE actualmente conectado. | Se usará para realizar operaciones de comunicación con el hardware.
   btClassic.BluetoothConnection?
@@ -21,6 +24,10 @@ class ControlController {
       FlutterSoundRecorder(); //Grabador de audio para manejar la funcionalidad de PTT (Push-to-Talk). | Permite iniciar y detener la grabación de audio.
   bool isPTTActive =
       false; //Estado del botón PTT. | Indica si el PTT está activado o desactivado.
+
+  String batteryImagePath = 'assets/images/Estados/battery_full.png';
+
+  Timer? _batteryStatusTimer;
 
   ///===CONFIGURAR DISPOSITIVO CONECTADO===
   /*
@@ -37,6 +44,20 @@ class ControlController {
     await _discoverServices();
   } //FIN setDevice
 
+  Timer? _batteryMonitorTimer;
+
+  void startBatteryStatusMonitoring() {
+    _batteryMonitorTimer?.cancel(); // Limpia si hay uno activo
+    _batteryMonitorTimer = Timer.periodic(Duration(seconds: 10), (_) {
+      requestSystemStatus();
+    });
+  }
+
+  void stopBatteryStatusMonitoring() {
+    _batteryMonitorTimer?.cancel();
+    _batteryMonitorTimer = null;
+  }
+
   ///===DESCUBRIR SERVICIOS Y CARACTERÍSTICAS BLE===
   /*
    * Descubre los servicios del dispositivo BLE actualmente conectado.
@@ -47,35 +68,40 @@ class ControlController {
    * - Si no se encuentra ninguna característica de escritura, se reporta en el log.
    */
   Future<void> _discoverServices() async {
-    // Si no hay un dispositivo conectado, no hace nada.
     if (connectedDevice == null) return;
 
-    // Obtiene la lista de servicios BLE disponibles en el dispositivo.
     List<BluetoothService> services = await connectedDevice!.discoverServices();
 
-    // Recorre cada servicio encontrado.
     for (var service in services) {
-      // Dentro de cada servicio, revisa sus características.
       for (var characteristic in service.characteristics) {
         debugPrint("Característica encontrada: ${characteristic.uuid}");
 
-        // Verifica si la característica actual tiene propiedad de escritura.
         if (characteristic.properties.write) {
           targetCharacteristic = characteristic;
           debugPrint(
             "Característica de escritura seleccionada: ${characteristic.uuid}",
           );
-          // Retorna inmediatamente luego de encontrar la primera característica de escritura.
+
+          await characteristic.setNotifyValue(true);
+          listenForResponses(characteristic);
+
+
+          // 🟡 Enviar protocolo de estado del sistema para obtener nivel de batería
+          List<int> batteryStatusCommand = ascii.encode("AA14184430F9FF");
+          await characteristic.write(
+            batteryStatusCommand,
+            withoutResponse: true,
+          );
+
           return;
         }
       }
     }
 
-    // Si no se encontró ninguna característica de escritura en todos los servicios, se informa por consola.
     debugPrint(
       "No se encontró característica de escritura en los servicios BLE.",
     );
-  } //FIN _discoverServices
+  }
 
   ///===ENVIAR COMANDO / PROTOCOLO AL DISPOSITIVO PW CONECTADO A BLUETOOTH EN FORMARO ASCII===
   /*
@@ -318,8 +344,6 @@ class ControlController {
 
       // 2. Realiza la conexión Bluetooth Classic de manera dinámica usando la dirección MAC
 
-
-
       // 3. Solicita permiso de micrófono para enviar audio por Classic
       if (await _requestMicrophonePermission()) {
         // 3.1 Inicia la grabación (micrófono)
@@ -505,13 +529,10 @@ class ControlController {
 
   void requestSystemStatus() {
     List<int> frame = [0xAA, 0x14, 0x18, 0x44];
-
-    // FORZAR EL CRC A `30F9` SOLO PARA SOLicitud DE ESTADO DEL SISTEMA
-    frame.addAll([0x30, 0xF9]);
+    frame.addAll([0x30, 0xF9]); // ✅ CRC correcto
     frame.add(0xFF); // Fin de trama
-
     sendCommand(frame);
-  } //FIN requestSystemStatus
+  }
 
   ///===ESCUCHAR RESPUESTAS DEL HARDWARE EN ASCII
   /*
@@ -523,7 +544,7 @@ class ControlController {
    * - Extrae el comando y el CRC para evaluar el estado reportado por el dispositivo.
    */
 
-// ================================
+  // ================================
   // NUEVAS FUNCIONES IMPLEMENTADAS
   // ================================
 
@@ -561,57 +582,52 @@ class ControlController {
     debugPrint("⏳ Esperar 30 segundos para el autoajuste PA.");
   }
 
+  BatteryLevel batteryLevel = BatteryLevel.full;
 
-
-  /// **Escuchar respuestas del hardware**
-  void listenForResponses(Ble.BluetoothCharacteristic characteristic) {
+  void listenForResponses(BluetoothCharacteristic characteristic) {
     characteristic.setNotifyValue(true);
     characteristic.value.listen((response) {
-      String hexResponse = response.map((e) => e.toRadixString(16).padLeft(2, '0')).join(' ').toUpperCase();
-      debugPrint("📩 Respuesta recibida: $hexResponse");
+      // Imprimir la trama HEX para debug
+      String hexResponse =
+          response
+              .map((e) => e.toRadixString(16).padLeft(2, '0'))
+              .join(' ')
+              .toUpperCase();
+      debugPrint("📩 Respuesta HEX recibida: $hexResponse");
 
-      if (response.length >= 6) {
-        String command = hexResponse.substring(3, 5);
-        String crc = hexResponse.substring(hexResponse.length - 4);
-
-        switch (command) {
-          case "18":
-            if (crc == "3733") debugPrint("✅ Estado del sistema: DataOK");
-            break;
-          case "22":
-            if (crc == "D45A") debugPrint("⚠️ Estado del sistema: DataFail");
-            break;
-          case "33":
-            if (crc == "B8CA") debugPrint("❌ Estado del sistema: CRC error");
-            break;
-          case "24":
-            debugPrint("🔁 Cambio Aux/Luces recibido");
-            break;
-          case "25":
-            debugPrint("🔊 Cambio Tono Horn recibido");
-            break;
-          case "26":
-            debugPrint("💡 Sincronización luces/sirena recibida");
-            break;
-          case "27":
-            debugPrint("🔄 Autoajuste PA recibido");
-            break;
-          case "13":
-            debugPrint("💡 Función Luz Activa");
-            break;
-          case "14":
+      // Validar trama válida de estado
+      if (response.length >= 7 &&
+          response[0] == 0xAA &&
+          response[1] == 0x18 &&
+          response[2] == 0x18 &&
+          response[3] == 0x55) {
+        int batteryByte = response[5];
+        switch (batteryByte) {
+          case 0x14:
             debugPrint("🔋 Batería Completa / Carro encendido");
+            batteryLevel = BatteryLevel.full;
             break;
-          case "15":
-            debugPrint("🔋 Batería Media / Carro apagado");
+          case 0x15:
+            debugPrint("🟡 Batería Media / Carro apagado");
+            batteryLevel = BatteryLevel.medium;
             break;
-          case "16":
-            debugPrint("⚠️ Batería Baja");
+          case 0x16:
+            debugPrint("🔴 Batería Baja");
+            batteryLevel = BatteryLevel.low;
             break;
           default:
-            debugPrint("❓ Estado desconocido: $command");
+            debugPrint(
+              "❓ Estado de batería desconocido: ${batteryByte.toRadixString(16)}",
+            );
         }
+      } else {
+        debugPrint(
+          "❓ Trama no válida o no relacionada al estado de batería: $hexResponse",
+        );
       }
+
+      // Actualiza UI si usas Provider u otro patrón reactivo
+      notifyListeners();
     });
   }
 
@@ -625,4 +641,4 @@ class ControlController {
   }
 }
 
- //FIN ControlController
+//FIN ControlController
