@@ -3,10 +3,10 @@ PODS:
   - flutter_blue_plus_darwin (0.0.2):
     - Flutter
     - FlutterMacOS
-  - flutter_sound (9.25.9):
+  - flutter_sound (9.28.0):
     - Flutter
-    - flutter_sound_core (= 9.25.9)
-  - flutter_sound_core (9.25.9)
+    - flutter_sound_core (= 9.28.0)
+  - flutter_sound_core (9.28.0)
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -45,8 +45,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_blue_plus_darwin: 09444a26fb6bdef523e55b68fc1c59af5a877ea6
-  flutter_sound: 2bead07b631c61661b22f281fdb84069f1b5c62b
-  flutter_sound_core: 6ae5ae83a325c555c6618780b0b43ab9ad4ec0f4
+  flutter_sound: b9236a5875299aaa4cef1690afd2f01d52a3f890
+  flutter_sound_core: 427465f72d07ab8c3edbe8ffdde709ddacd3763c
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7

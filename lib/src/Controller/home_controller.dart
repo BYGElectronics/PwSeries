@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import '../pages/control_screen.dart';
+import 'control_controller.dart';
 
 class HomeController {
   final FlutterBluePlus flutterBlue = FlutterBluePlus();
@@ -75,8 +76,11 @@ class HomeController {
     if (connectedDevice != null && connectedDevice!.platformName.contains("Pw")) {
       Navigator.pushNamed(
         context,
-        "control",
-        arguments: connectedDevice,
+        "/control",
+        arguments: {
+          "device": connectedDevice,
+          "controller": ControlController(),
+        },
       );
     } else {
       debugPrint("⚠️ Debes conectar un dispositivo PW para acceder al teclado.");
@@ -88,6 +92,7 @@ class HomeController {
       );
     }
   }
+
 
 
   /// Conectar a un dispositivo filtrado
@@ -150,14 +155,25 @@ class HomeController {
     }
   }
 
-  /// Navegar al Teclado Virtual**
   void navigateToControl(BuildContext context) {
-    Navigator.pushNamed(
-      context,
-      "control",
-      arguments: connectedDevice, // Asegúrate de que este objeto sea válido
-    );
-
-
+    if (connectedDevice != null) {
+      Navigator.pushNamed(
+        context,
+        "/control",
+        arguments: {
+          "device": connectedDevice,
+          "controller": ControlController(),
+        },
+      );
+    } else {
+      debugPrint("⚠️ Dispositivo no conectado.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Primero debes conectar un dispositivo."),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
+
 }

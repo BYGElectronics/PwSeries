@@ -318,6 +318,8 @@ class ControlController {
 
       // 2. Realiza la conexión Bluetooth Classic de manera dinámica usando la dirección MAC
 
+
+
       // 3. Solicita permiso de micrófono para enviar audio por Classic
       if (await _requestMicrophonePermission()) {
         // 3.1 Inicia la grabación (micrófono)
@@ -521,7 +523,7 @@ class ControlController {
    * - Extrae el comando y el CRC para evaluar el estado reportado por el dispositivo.
    */
 
-  // ================================
+// ================================
   // NUEVAS FUNCIONES IMPLEMENTADAS
   // ================================
 
@@ -555,18 +557,17 @@ class ControlController {
     frame.addAll([0x77, 0xC9]); // CRC FORZADO
     frame.add(0xFF);
     sendCommand(frame);
+
     debugPrint("⏳ Esperar 30 segundos para el autoajuste PA.");
   }
+
+
 
   /// **Escuchar respuestas del hardware**
   void listenForResponses(Ble.BluetoothCharacteristic characteristic) {
     characteristic.setNotifyValue(true);
     characteristic.value.listen((response) {
-      String hexResponse =
-          response
-              .map((e) => e.toRadixString(16).padLeft(2, '0'))
-              .join(' ')
-              .toUpperCase();
+      String hexResponse = response.map((e) => e.toRadixString(16).padLeft(2, '0')).join(' ').toUpperCase();
       debugPrint("📩 Respuesta recibida: $hexResponse");
 
       if (response.length >= 6) {
@@ -624,4 +625,4 @@ class ControlController {
   }
 }
 
-//FIN ControlController
+ //FIN ControlController

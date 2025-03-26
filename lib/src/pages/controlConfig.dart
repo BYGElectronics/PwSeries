@@ -18,8 +18,7 @@ class ControlConfigScreen extends StatefulWidget {
   State<ControlConfigScreen> createState() => _ControlConfigScreenState();
 }
 
-class _ControlConfigScreenState extends State<ControlConfigScreen>
-    with SingleTickerProviderStateMixin {
+class _ControlConfigScreenState extends State<ControlConfigScreen> with SingleTickerProviderStateMixin {
   late final BluetoothDevice _device;
   late final ControlController _controller;
 
@@ -45,6 +44,7 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
       begin: 1.0,
       end: 0.0,
     ).animate(_animationController);
+
   }
 
   String _getLocalizedButtonImage(String buttonName, String locale) {
@@ -63,14 +63,24 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
     }
   }
 
+
   void _toggleMode() {
     _animationController.forward().then((_) {
-      setState(() {
-        // Aquí podrías volver al modo principal si lo deseas
-      });
       _animationController.reverse();
+
+      Future.delayed(const Duration(milliseconds: 4), () {
+        Navigator.pushReplacementNamed(
+          context,
+          '/control',
+          arguments: {
+            'device': widget.connectedDevice,
+            'controller': widget.controller,
+          },
+        );
+      });
     });
   }
+
 
   Future<void> _disconnectAndReturnHome() async {
     widget.controller.disconnectDevice();
@@ -78,6 +88,7 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
       Navigator.popUntil(context, ModalRoute.withName("home"));
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -112,15 +123,6 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
             ),
           ),
 
-          // 🔙 Botón Regresar
-          Positioned(
-            top: 50,
-            left: 10,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, size: 30, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
 
           // 🧱 Fondo
           Positioned(
@@ -196,9 +198,7 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
           Positioned(
             bottom: 200,
             child: GestureDetector(
-              onTap: () {
-                Navigator.pop(context); // 👈 Regresa al teclado principal
-              },
+              onTap: _toggleMode,
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Image.asset(
@@ -208,6 +208,8 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
               ),
             ),
           ),
+
+
 
           // Botón de Desconectar debajo del selector de teclado
           // Botón de Desconectar debajo del selector de teclado

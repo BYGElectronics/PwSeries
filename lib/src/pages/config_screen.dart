@@ -14,6 +14,12 @@ class ConfigScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
+    double headerHeight = screenHeight * 0.16;
+    double fondoWidth = screenWidth * 0.85;
+
     final List<Map<String, dynamic>> opcionesConfiguracion = [
       {
         'icon': Icons.language,
@@ -48,16 +54,20 @@ class ConfigScreen extends StatelessWidget {
 
 
 
+
     return Scaffold(
       body: Stack(
         children: [
-          Container(
-            width: double.infinity,
-            height: 160,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/header.png"),
-                fit: BoxFit.cover,
+          Positioned(
+            top: 0,
+            width: screenWidth,
+            child: Container(
+              height: headerHeight,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage("assets/images/header.png"),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),

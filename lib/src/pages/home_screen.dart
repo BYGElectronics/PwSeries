@@ -67,18 +67,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final double screenHeight = MediaQuery.of(context).size.height;
 
     // 🔹 Ajustes dinámicos del header
-    double headerHeight = screenHeight * 0.18; //
+    double headerHeight = screenHeight * 0.16; // Altura del header
 
     return Scaffold(
       body: Stack(
         children: [
-          Container(
-            width: double.infinity,
-            height: 140,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/header.png"),
-                fit: BoxFit.cover,
+          Positioned(
+            top: 0,
+            width: screenWidth,
+            child: Container(
+              height: headerHeight,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage("assets/images/header.png"),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),

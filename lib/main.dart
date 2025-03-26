@@ -159,12 +159,16 @@ class _MyAppState extends State<MyApp> {
         // Pantalla para cambiar el idioma
         "idioma": (context) => IdiomaScreen(),
 
-        "control": (context) {
-          final args = ModalRoute.of(context)?.settings.arguments;
-          if (args is BluetoothDevice && args.platformName.contains("Pw")) {
+        '/control': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+
+          final device = args['device'];
+          final controller = args['controller'];
+
+          if (device is BluetoothDevice && controller is ControlController) {
             return ControlScreen(
-              connectedDevice: args,
-              controller: ControlController(),
+              connectedDevice: device,
+              controller: controller,
             );
           } else {
             debugPrint("⚠️ No se ha conectado un dispositivo PW.");
@@ -176,15 +180,14 @@ class _MyAppState extends State<MyApp> {
         },
 
         '/controlConfig': (context) {
-          final args =
-              ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>? ??
-              {};
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+
           return ControlConfigScreen(
             connectedDevice: args['device'],
             controller: args['controller'],
           );
         },
+
       },
     );
   }

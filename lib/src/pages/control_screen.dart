@@ -140,17 +140,18 @@ class _ControlScreenState extends State<ControlScreen>
 
   void _toggleMode() {
     _animationController.forward().then((_) {
-      final wasPWMode = _isPWMode; // 👈 Guardamos estado actual
+      final wasPWMode = _isPWMode;
+
       setState(() {
         _isPWMode = !_isPWMode;
       });
+
       _animationController.reverse();
 
-      Future.delayed(const Duration(milliseconds: 10), () {
+      Future.delayed(const Duration(milliseconds: 4), () {
         if (wasPWMode) {
-          // Si venimos de PW, vamos a config
           debugPrint("⚙️ Navegando al teclado de configuración");
-          Navigator.pushNamed(
+          Navigator.pushReplacementNamed(
             context,
             "/controlConfig",
             arguments: {
@@ -159,12 +160,20 @@ class _ControlScreenState extends State<ControlScreen>
             },
           );
         } else {
-          // Si venimos de config, solo vuelve a PW (ya está en esta pantalla)
           debugPrint("🔵 Navegando al teclado principal (PW)");
+          Navigator.pushReplacementNamed(
+            context,
+            "/control",
+            arguments: {
+              "device": widget.connectedDevice,
+              "controller": _controller,
+            },
+          );
         }
       });
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +182,7 @@ class _ControlScreenState extends State<ControlScreen>
     final double screenHeight = MediaQuery.of(context).size.height;
 
     // Ajuste dinámico del fondo según la pantalla
+    double headerHeight = screenHeight * 0.16;
     double fondoWidth = screenWidth * 0.85;
     double fondoHeight = fondoWidth * 0.5;
 
@@ -184,7 +194,7 @@ class _ControlScreenState extends State<ControlScreen>
             top: 0,
             width: screenWidth,
             child: Container(
-              height: 160,
+              height: headerHeight,
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage("assets/images/header.png"),
@@ -294,7 +304,6 @@ class _ControlScreenState extends State<ControlScreen>
             ),
           ),
 
-          // Botón de Desconectar debajo del selector de teclado
           // Botón de Desconectar debajo del selector de teclado
           Positioned(
             bottom: 60, // 📌 Ajusta la posición según el diseño
