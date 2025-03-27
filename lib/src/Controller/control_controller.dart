@@ -1,15 +1,19 @@
+///================================///
+///     IMPORTACIONES NECESARIAS   ///
+///================================///
+library;
+
 import 'dart:async'; // Proporciona herramientas para trabajar con programación asíncrona, como Future y Stream.
 import 'dart:convert';
 import 'package:flutter/material.dart'; // Framework principal de Flutter para construir interfaces de usuario.
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as Ble;
 import 'package:permission_handler/permission_handler.dart'; // Maneja permisos en tiempo de ejecución para acceder a hardware y funciones del dispositivo.
 import 'package:flutter_sound/flutter_sound.dart'; // Biblioteca para grabación y reproducción de audio.
-import 'dart:typed_data'; // Proporciona listas de bytes eficientes para manipulación de datos binarios.
 import 'package:path_provider/path_provider.dart'; // Permite acceder a directorios específicos del sistema de archivos, como caché y documentos.
-import 'dart:io'; // Proporciona herramientas para manipulación de archivos y operaciones en el sistema de archivos.
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Maneja la comunicación con dispositivos Bluetooth Low Energy (BLE).
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
     as btClassic; // Biblioteca para manejar Bluetooth Classic, utilizado para conexiones seriales.
+import 'package:get/get.dart';
 
 enum BatteryLevel { full, medium, low }
 
@@ -24,18 +28,24 @@ class ControlController extends ChangeNotifier {
       FlutterSoundRecorder(); //Grabador de audio para manejar la funcionalidad de PTT (Push-to-Talk). | Permite iniciar y detener la grabación de audio.
   bool isPTTActive =
       false; //Estado del botón PTT. | Indica si el PTT está activado o desactivado.
-
-  String batteryImagePath = 'assets/images/Estados/battery_full.png';
-
+  String batteryImagePath = 'assets/images/Estados/battery_medium.png';
   Timer? _batteryStatusTimer;
+  Timer? _batteryMonitorTimer;
+  late BluetoothDevice _device;
+  BatteryLevel batteryLevel = BatteryLevel.full;
 
-  ///===CONFIGURAR DISPOSITIVO CONECTADO===
-  /*
-  * Configura el dispositivo BLE actualmente conectado.
-  * Guarda la referencia del dispositivo y luego busca los servicios disponibles.
-  *
-  * @param device - El dispositivo Bluetooth LE que se conectará.
-  */
+  late Ble.BluetoothService _service;
+  late Ble.BluetoothCharacteristic _characteristic;
+  late BluetoothCharacteristic _writeCharacteristic;
+
+  // Estado del botón PTT (reactivo)
+  RxBool isPttActive = false.obs;
+
+  /// =======================================//
+  /// CONFIGURACION DE DISPOSITIVO CONECTADO //
+  /// =======================================//
+
+  // Configura el dispositivo BLE conectado, guarda su referencia y busca sus servicios disponibles.
   void setDevice(BluetoothDevice device) async {
     // Guarda el dispositivo BLE seleccionado
     connectedDevice = device;
@@ -44,11 +54,32 @@ class ControlController extends ChangeNotifier {
     await _discoverServices();
   } //FIN setDevice
 
-  Timer? _batteryMonitorTimer;
+  void setWriteCharacteristic(
+    BluetoothService service,
+    BluetoothCharacteristic charac,
+  ) {
+    _service = service;
+    _writeCharacteristic = charac;
+  }
+
+  Future<void> sendBtCommand(String command) async {
+    if (_writeCharacteristic.properties.write) {
+      await _writeCharacteristic.write(
+        utf8.encode(command),
+        withoutResponse: true,
+      );
+    }
+  }
+
+  Future<void> activatePTT() async {
+    isPttActive.value = true;
+    await sendBtCommand("PTT_ON");
+    // Aquí podrías iniciar lógica Classic BT si aplica
+  }
 
   void startBatteryStatusMonitoring() {
     _batteryMonitorTimer?.cancel(); // Limpia si hay uno activo
-    _batteryMonitorTimer = Timer.periodic(Duration(seconds: 10), (_) {
+    _batteryMonitorTimer = Timer.periodic(Duration(seconds: 50), (_) {
       requestSystemStatus();
     });
   }
@@ -58,15 +89,11 @@ class ControlController extends ChangeNotifier {
     _batteryMonitorTimer = null;
   }
 
-  ///===DESCUBRIR SERVICIOS Y CARACTERÍSTICAS BLE===
-  /*
-   * Descubre los servicios del dispositivo BLE actualmente conectado.
-   * - Primero verifica si hay un dispositivo almacenado en `connectedDevice`.
-   * - Obtiene la lista de servicios disponibles en ese dispositivo.
-   * - Dentro de cada servicio, analiza las características buscando la que sea de tipo 'write'.
-   * - Si la encuentra, la asigna a 'targetCharacteristic' para uso posterior.
-   * - Si no se encuentra ninguna característica de escritura, se reporta en el log.
-   */
+  /// =============================================//
+  /// DESCUBIR LOS SERVICIOS Y CARACTERISTICAS BLE //
+  /// ============================================//
+
+  // Descubre los servicios del dispositivo BLE conectado, busca una característica de escritura y la asigna a 'targetCharacteristic'; si no hay, lo reporta en el log.
   Future<void> _discoverServices() async {
     if (connectedDevice == null) return;
 
@@ -85,7 +112,6 @@ class ControlController extends ChangeNotifier {
           await characteristic.setNotifyValue(true);
           listenForResponses(characteristic);
 
-
           // 🟡 Enviar protocolo de estado del sistema para obtener nivel de batería
           List<int> batteryStatusCommand = ascii.encode("AA14184430F9FF");
           await characteristic.write(
@@ -103,28 +129,11 @@ class ControlController extends ChangeNotifier {
     );
   }
 
-  ///===ENVIAR COMANDO / PROTOCOLO AL DISPOSITIVO PW CONECTADO A BLUETOOTH EN FORMARO ASCII===
-  /*
-   * Envía un comando al dispositivo BLE conectado a través de la característica de escritura.
-   *
-   * Pasos:
-   * 1. Verifica que tanto `targetCharacteristic` (característica con propiedad de escritura)
-   *    como `connectedDevice` (el dispositivo BLE conectado) no sean nulos.
-   *    - Si alguno es nulo, muestra un mensaje de error y retorna.
-   *
-   * 2. Convierte la lista de bytes recibida en su representación ASCII en formato hexadecimal:
-   *    - Cada byte se pasa a una cadena hex con dos dígitos (ej. 0x0A -> "0A").
-   *    - Todos se concatenan en un solo string, y se convierten a mayúsculas.
-   *    - Se obtiene así, por ejemplo, "AA14..." etc.
-   *
-   * 3. Convierte esa cadena ASCII a un arreglo de bytes (`asciiBytes`).
-   *
-   * 4. Llama a `targetCharacteristic.write` para enviar esos bytes al dispositivo,
-   *    usando `withoutResponse: false` para asegurarse de que se procese la confirmación.
-   *
-   * 5. En caso de éxito, registra en consola que se ha enviado el comando (con la
-   *    representación ASCII del mismo). Si ocurre algún error, lo captura y muestra en el log.
-   */
+  /// =====================================================================================//
+  /// ENVIAR COMANDO / PROTOCOLO AL DISPOSITIVO PW CONECTADO A BLUETOOTH EN FORMARO ASCII //
+  /// ===================================================================================//
+
+  // Envía un comando al dispositivo BLE en formato ASCII hexadecimal usando la característica de escritura; valida conexión, convierte los bytes, envía y registra el resultado.
   Future<void> sendCommand(List<int> command) async {
     // Si no tenemos una característica de escritura asignada o no hay dispositivo conectado, se avisa y se sale.
     if (targetCharacteristic == null || connectedDevice == null) {
@@ -158,23 +167,11 @@ class ControlController extends ChangeNotifier {
     }
   } //FIN sendCommand
 
-  ///===CALCULO DEL CRC MODBUS===
-  /*
-   * Calcula el CRC (Cyclic Redundancy Check) de tipo ModBus para un arreglo de bytes.
-   *
-   * Pasos:
-   * 1. Se inicia la variable `crc` con el valor 0xFFFF.
-   * 2. Para cada byte en la lista `data`:
-   *    - Se hace XOR entre `crc` y el byte actual.
-   *    - Luego se itera 8 veces:
-   *       - Si el bit menos significativo (LSB) de `crc` es 1,
-   *         se realiza un desplazamiento a la derecha de `crc` y se hace XOR con 0xA001.
-   *       - De lo contrario, simplemente se realiza un desplazamiento a la derecha de `crc`.
-   * 3. Una vez procesados todos los bytes, ModBus espera que
-   *    el resultado final del CRC se divida en dos bytes (low y high).
-   *    Sin embargo, a menudo se envían en orden inverso: primero el low y luego el high.
-   * 4. Esta función devuelve el CRC reordenado, tomando el byte bajo como high y el byte alto como low.
-   */
+  /// ==========================//
+  /// CALCULO DE CRC / MOD-BUS //
+  /// ========================//
+
+  // Calcula el CRC ModBus para una lista de bytes y devuelve el resultado con los bytes invertidos (low primero, luego high).
   int calculateCRC(List<int> data) {
     int crc = 0xFFFF;
     // Recorre cada byte y actualiza el CRC en base al algoritmo ModBus
@@ -194,16 +191,11 @@ class ControlController extends ChangeNotifier {
     return ((crc & 0xFF) << 8) | ((crc >> 8) & 0xFF);
   } //FIN calculateCRC
 
-  ///===TEST CRC===
-  /*
-   * Función de prueba para verificar el correcto funcionamiento de `calculateCRC`.
-   *
-   * Pasos:
-   * 1. Se define un arreglo de bytes `testData` con valores `[0xAA, 0x14, 0x07, 0x44]`.
-   * 2. Se obtiene el valor de CRC calculado para este arreglo.
-   * 3. Se muestra por consola el resultado en formato hexadecimal,
-   *    comparándolo con el CRC esperado (`CFC8`) para validar la implementación.
-   */
+  /// =======================//
+  /// TEST DE CRC / MOD-BUS //
+  /// =====================//
+
+  // Prueba la función `calculateCRC` usando datos de ejemplo y compara el resultado con el CRC esperado (`CFC8`).
   void testCRC() {
     // Datos de prueba para verificar el CRC.
     List<int> testData = [0xAA, 0x14, 0x07, 0x44];
@@ -215,22 +207,12 @@ class ControlController extends ChangeNotifier {
     );
   } //FIN testCRC
 
-  ///FUNCIONES DE CONTROL CON PROTOCOLOS CORRECTOS
-  /*
-   * Método para activar la Sirena a través de BLE.
-   *
-   * Pasos:
-   * 1. Se construye un frame específico para la sirena:
-   *    [0xAA, 0x14, 0x07, 0x44, 0xCF, 0xC8, 0xFF]
-   *    - 0xAA  : Inicio de trama
-   *    - 0x14  : Dirección o comando base
-   *    - 0x07  : Código del comando "Sirena"
-   *    - 0x44  : Dato para activar
-   *    - 0xCF, 0xC8 : CRC forzado para este comando
-   *    - 0xFF  : Fin de trama
-   * 2. Se llama a `sendCommand(frame)` para enviar estos bytes al dispositivo.
-   * 3. Se imprime un mensaje de confirmación en la consola.
-   */
+  /// ===============================================//
+  /// FUNCIONES DE CONTROL CON PROTOCOLOS CORRECTOS //
+  /// =============================================//
+
+  ///===SIRENA===
+  // Activa la sirena enviando el frame [0xAA, 0x14, 0x07, 0x44, 0xCF, 0xC8, 0xFF] por BLE y muestra confirmación en consola.
   void activateSiren() {
     // Enviar el protocolo para activar Sirena
     List<int> frame = [0xAA, 0x14, 0x07, 0x44, 0xCF, 0xC8, 0xFF];
@@ -238,21 +220,8 @@ class ControlController extends ChangeNotifier {
     debugPrint("✅ Sirena activada.");
   } //FIN activateSiren
 
-  /*
-   * Método para activar la Auxiliar a través de BLE.
-   *
-   * Pasos:
-   * 1. Se construye un frame específico para el auxiliar:
-   *    [0xAA, 0x14, 0x08, 0x44, 0xCC, 0xF8, 0xFF]
-   *    - 0xAA  : Inicio de trama
-   *    - 0x14  : Dirección o comando base
-   *    - 0x08  : Código del comando "Auxiliar"
-   *    - 0x44  : Dato para activar
-   *    - 0xCC, 0xF8 : CRC forzado para este comando
-   *    - 0xFF  : Fin de trama
-   * 2. Se llama a `sendCommand(frame)` para enviar estos bytes al dispositivo.
-   * 3. Se imprime un mensaje de confirmación en la consola.
-   */
+  ///===AUXILIAR===
+  // Activa la salida Auxiliar enviando el frame [0xAA, 0x14, 0x08, 0x44, 0xCC, 0xF8, 0xFF] por BLE y muestra confirmación en consola.
   void activateAux() {
     // Enviar el protocolo para activar Auxiliar
     List<int> frame = [0xAA, 0x14, 0x08, 0x44, 0xCC, 0xF8, 0xFF];
@@ -260,21 +229,8 @@ class ControlController extends ChangeNotifier {
     debugPrint("✅ Auxiliar activado.");
   } //FIN activateAux
 
-  /*
-   * Método para activar el Intercomunicador a través de BLE.
-   *
-   * Pasos:
-   * 1. Se construye el frame específico para el intercom:
-   *    [0xAA, 0x14, 0x12, 0x44, 0x32, 0xD9, 0xFF]
-   *    - 0xAA  : Inicio de trama
-   *    - 0x14  : Dirección o comando base
-   *    - 0x12  : Código del comando "Intercom"
-   *    - 0x44  : Dato para activar
-   *    - 0x32, 0xD9 : CRC forzado para este comando
-   *    - 0xFF  : Fin de trama
-   * 2. Se llama a `sendCommand(frame)` para enviar estos bytes al dispositivo.
-   * 3. Se imprime un mensaje de confirmación en la consola.
-   */
+  ///===INTERCOMUNICADOR===
+  // Activa el Intercomunicador enviando el frame [0xAA, 0x14, 0x12, 0x44, 0x32, 0xD9, 0xFF] por BLE y muestra confirmación en consola.
   void activateInter() {
     // Enviar el protocolo para activar Intercom
     List<int> frame = [0xAA, 0x14, 0x12, 0x44, 0x32, 0xD9, 0xFF];
@@ -282,21 +238,8 @@ class ControlController extends ChangeNotifier {
     debugPrint("✅ Intercom activado.");
   } //FIN activateInter
 
-  /*
-   * Método para alternar (encender/restablecer) la bocina (Horn).
-   *
-   * Pasos:
-   * 1. Se envía primero un frame "resetFrame" con valores neutrales:
-   *    [0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF]
-   *    Esto permite restablecer cualquier estado previo.
-   * 2. Luego se construye el frame principal:
-   *    [0xAA, 0x14, 0x09, 0x44, 0x0C, 0xA9, 0xFF]
-   *    - 0x09  : Código del comando "Horn"
-   *    - 0x44  : Indica activación
-   *    - 0x0C, 0xA9 : CRC forzado para Horn
-   * 3. Ambos frames se envían con `sendCommand(...)`.
-   * 4. Se imprime en consola un mensaje que confirma la acción.
-   */
+  ///===HORN===
+  // Alterna la bocina (Horn) enviando primero un frame de reset [0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF] y luego el frame principal [0xAA, 0x14, 0x09, 0x44, 0x0C, 0xA9, 0xFF], confirmando en consola.
   void toggleHorn() {
     // Enviar un comando neutro para restablecer el estado
     List<int> resetFrame = [0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF];
@@ -308,18 +251,8 @@ class ControlController extends ChangeNotifier {
     debugPrint("✅ Horn alternado después de reset.");
   } //FIN toggleHorn
 
-  /*
-   * Método para alternar (encender) el Wail a través de BLE.
-   *
-   * Pasos:
-   * 1. Se construye el frame específico para Wail:
-   *    [0xAA, 0x14, 0x10, 0x44, 0xF2, 0x78, 0xFF]
-   *    - 0x10  : Código del comando "Wail"
-   *    - 0x44  : Activación
-   *    - 0xF2, 0x78 : CRC forzado para Wail
-   * 2. Se llama a `sendCommand(frame)` para enviar estos bytes al dispositivo.
-   * 3. Se imprime un mensaje de confirmación en la consola.
-   */
+  ///===WAIL===
+  // Activa el Wail enviando el frame [0xAA, 0x14, 0x10, 0x44, 0xF2, 0x78, 0xFF] por BLE y muestra confirmación en consola.
   void toggleWail() {
     // Enviar el protocolo del Wail
     List<int> frame = [0xAA, 0x14, 0x10, 0x44, 0xF2, 0x78, 0xFF];
@@ -327,73 +260,90 @@ class ControlController extends ChangeNotifier {
     debugPrint("✅ Wail alternado.");
   } //FIN toggleWail
 
-  /*
-   * Función para alternar el estado del PTT (Push to Talk).
-   * - Activa el modo Bluetooth Classic solo mientras se mantiene el PTT activo
-   * - Desactiva el micrófono y el Bluetooth Classic al terminar
-   * - Reconecta BLE automáticamente al finalizar el uso de PTT
-   */
+  /// =================//
+  /// FUNCION DE PTT //
+  /// ==============//
+
+  // Alterna el estado del PTT activando Bluetooth Classic y el micrófono mientras esté presionado, y al soltar, los desactiva y reconecta BLE automáticamente.
   Future<void> togglePTT() async {
-    // Verifica si el PTT está desactivado
     if (!isPTTActive) {
-      // 1. Desconecta primero el dispositivo BLE, si existe
-      if (connectedDevice != null) {
-        await connectedDevice!.disconnect();
-        debugPrint('🔴 BLE desconectado temporalmente para usar Classic');
-      }
-
-      // 2. Realiza la conexión Bluetooth Classic de manera dinámica usando la dirección MAC
-
-      // 3. Solicita permiso de micrófono para enviar audio por Classic
-      if (await _requestMicrophonePermission()) {
-        // 3.1 Inicia la grabación (micrófono)
-        await _startMicrophone();
-      } else {
-        debugPrint(
-          "❌ Permiso de micrófono denegado, no se puede grabar audio.",
-        );
+      // Paso 1: Verifica conexión BLE
+      if (connectedDevice == null) {
+        debugPrint("❌ No hay dispositivo BLE conectado.");
         return;
       }
 
-      // 4. Envía el protocolo o frame correspondiente al comando de PTT en el hardware
+      // Paso 2: Enviar protocolo para cambiar al modo BT_PwAudio
+      List<int> activateClassicModeFrame = [
+        0xAA,
+        0x14,
+        0x30,
+        0x44,
+        0xAB,
+        0xCD,
+        0xFF,
+      ]; // Puedes ajustar el CRC si tienes el correcto
+      await sendCommand(activateClassicModeFrame);
+      debugPrint("📡 Protocolo para activar BT_PwAudio enviado por BLE.");
+
+      // Paso 3: Esperar breve delay para cambio de perfil
+      await Future.delayed(Duration(seconds: 2));
+
+      // Paso 4: Desconectar BLE temporalmente
+      await connectedDevice!.disconnect();
+      debugPrint("🔴 BLE desconectado temporalmente.");
+
+      // Paso 5: Obtener la MAC y conectar Classic
+      String mac = connectedDevice!.remoteId.toString();
+      await _activateBluetoothClassic(mac);
+
+      // Paso 6: Pedir permiso de micrófono
+      if (!await _requestMicrophonePermission()) {
+        debugPrint("🚫 Permiso de micrófono denegado.");
+        return;
+      }
+
+      // Paso 7: Iniciar grabación
+      await _startMicrophone();
+
+      // Paso 8: Enviar protocolo de PTT activado
       List<int> frame = [0xAA, 0x14, 0x11, 0x44, 0x32, 0x29, 0xFF];
       await sendCommand(frame);
 
-      // 5. Marca el estado del PTT como activo
       isPTTActive = true;
-      debugPrint("✅ PTT activado correctamente.");
+      debugPrint("🎙️ PTT activado, transmitiendo...");
     } else {
-      // Caso contrario: el PTT está activo y se desea desactivar
-
-      // 1. Detener y cerrar el micrófono
+      // Paso 1: Detener grabación y Classic
       await _stopMicrophone();
-
-      // 2. Desconectar el Bluetooth Classic
       await _deactivateBluetoothClassic();
 
-      // 3. Reconectar Bluetooth BLE, en caso de que haya un dispositivo previamente guardado
+      // Paso 2: Reconectar BLE
       if (connectedDevice != null) {
         await connectedDevice!.connect();
-        debugPrint('🔵 BLE reconectado correctamente');
-        // Redescubre los servicios BLE para restablecer la característica de escritura
         await _discoverServices();
+        debugPrint("🔵 BLE reconectado.");
       }
 
-      // 4. Envía el mismo protocolo PTT para desactivarlo en el hardware
-      List<int> frame = [0xAA, 0x14, 0x11, 0x44, 0x32, 0x29, 0XFF];
+      // Paso 3: Enviar protocolo para desactivar PTT
+      List<int> frame = [
+        0xAA,
+        0x14,
+        0x11,
+        0x44,
+        0x32,
+        0x29,
+        0xFF,
+      ]; // mismo frame que activa también desactiva
       await sendCommand(frame);
 
-      // 5. Marca el estado del PTT como inactivo
       isPTTActive = false;
-      debugPrint("⛔ PTT desactivado correctamente.");
+      debugPrint("⛔ PTT desactivado.");
     }
-  } //FIN togglePTT
+  }
 
-  ///FUNCIONES PARA FUNCION DE PTT
-  /*
-   * Solicita el permiso de micrófono al usuario.
-   * Devuelve `true` si el permiso fue concedido; de lo contrario, `false`.
-   */
+  ///===FUNCIONES PARA FUNCION DE PTT===
+
+  // Solicita permiso de micrófono y devuelve `true` si fue concedido, o `false` si fue denegado.
   Future<bool> _requestMicrophonePermission() async {
     var status = await Permission.microphone.request();
     if (status.isGranted) {
@@ -405,13 +355,7 @@ class ControlController extends ChangeNotifier {
     }
   } //FIN _requestMicrophonePermission
 
-  /*
-   * Inicia la grabación de audio a través del micrófono.
-   * - Verifica si no se está grabando ya.
-   * - Abre el 'recorder' de Flutter Sound.
-   * - Genera un archivo temporal (audio_ptt.aac) en el directorio temporal.
-   * - Comienza la grabación con el codec AAC ADTS.
-   */
+  // Inicia la grabación de audio si no está activa, abre el recorder de Flutter Sound, crea un archivo temporal 'audio_ptt.aac' y graba en formato AAC ADTS.
   Future<void> _startMicrophone() async {
     try {
       if (!_recorder.isRecording) {
@@ -433,11 +377,7 @@ class ControlController extends ChangeNotifier {
     }
   } //FIN _startMicrophone
 
-  /*
-   * Detiene la grabación de audio a través del micrófono.
-   * - Verifica si el grabador está en uso.
-   * - Detiene la grabación, cierra el grabador y notifica por consola.
-   */
+  // Detiene la grabacion si esta activa, cierra el recorder y muestra un mensaje en la consola.
   Future<void> _stopMicrophone() async {
     try {
       if (_recorder.isRecording) {
@@ -450,12 +390,7 @@ class ControlController extends ChangeNotifier {
     }
   } //FIN _stopMicrophone
 
-  /*
-   * Activa (conecta) el Bluetooth Classic a una dirección MAC específica.
-   * - Recibe como parámetro la dirección MAC del dispositivo Classic.
-   * - Verifica que no esté vacío el address.
-   * - Si no hay conexión previa o esta no está activa, intenta conectar.
-   */
+  // Conecta el Bluetooth Classic a una MAC especifica si no esta ya conectado y la direccion ya no es valida
   Future<void> _activateBluetoothClassic(String address) async {
     debugPrint("🔄 Intentando conectar Bluetooth Classic a $address...");
     try {
@@ -478,12 +413,7 @@ class ControlController extends ChangeNotifier {
     }
   } //FIN _activateBluetoothClassic
 
-  /*
-   * Desactiva (cierra) la conexión Bluetooth Classic, si existe.
-   * - Verifica la conexión actual.
-   * - Cierra la conexión si está activa.
-   * - Finalmente, restablece classicConnection a null.
-   */
+  // Cierra la conexión Bluetooth Classic si está activa y restablece classicConnection a null.
   Future<void> _deactivateBluetoothClassic() async {
     try {
       if (classicConnection != null && classicConnection!.isConnected) {
@@ -502,31 +432,8 @@ class ControlController extends ChangeNotifier {
     }
   } //FIN _deactivateBluetoothClassic
 
-  /*
-   * Envío de trama PTT específica según el documento.
-   * - Construye y envía el comando correspondiente para el Push To Talk.
-   */
-
-  ///==SOLICITAR ESTADOS DEL SISTEMA===
-  /*
-   * Método para solicitar el estado actual del sistema al hardware.
-   *
-   * Pasos:
-   * 1. Se construye el frame con los bytes base:
-   *    [0xAA, 0x14, 0x18, 0x44]
-   *    - 0xAA : Inicio de trama
-   *    - 0x14 : Dirección o comando base
-   *    - 0x18 : Código de comando para “Estado del Sistema”
-   *    - 0x44 : Dato para indicar solicitud
-   *
-   * 2. Se agrega el CRC forzado para la “solicitud de estado del sistema”:
-   *    [0x30, 0xF9]
-   *
-   * 3. Se agrega el byte de fin de trama (0xFF).
-   *
-   * 4. Se llama a `sendCommand(frame)` para enviar el comando por BLE.
-   */
-
+  ///===ESTADO DE SISTEMA===
+  // Solicita el estado del sistema construyendo y enviando el frame [0xAA, 0x14, 0x18, 0x44, 0x30, 0xF9, 0xFF] por BLE.
   void requestSystemStatus() {
     List<int> frame = [0xAA, 0x14, 0x18, 0x44];
     frame.addAll([0x30, 0xF9]); // ✅ CRC correcto
@@ -534,21 +441,7 @@ class ControlController extends ChangeNotifier {
     sendCommand(frame);
   }
 
-  ///===ESCUCHAR RESPUESTAS DEL HARDWARE EN ASCII
-  /*
-   * Escucha de notificaciones/respuestas provenientes del hardware BLE.
-   * - Comprueba si hay una característica de notificación disponible.
-   * - Activa la notificación (setNotifyValue(true)).
-   * - Se suscribe a los cambios de valor (value.listen(...)).
-   * - Convierte la respuesta recibida a hexadecimal legible.
-   * - Extrae el comando y el CRC para evaluar el estado reportado por el dispositivo.
-   */
-
-  // ================================
-  // NUEVAS FUNCIONES IMPLEMENTADAS
-  // ================================
-
-  /// **Cambiar Aux a Luces / Luces a Aux**
+  /// ===Cambiar Aux a Luces / Luces a Aux===
   void switchAuxLights() {
     List<int> frame = [0xAA, 0x14, 0x24, 0x44];
     frame.addAll([0x77, 0x39]); // CRC FORZADO
@@ -556,7 +449,7 @@ class ControlController extends ChangeNotifier {
     sendCommand(frame);
   }
 
-  /// **Cambiar Tono de Horn**
+  /// ===Cambiar Tono de Horn===
   void changeHornTone() {
     List<int> frame = [0xAA, 0x14, 0x25, 0x44];
     frame.addAll([0xB7, 0x68]); // CRC FORZADO
@@ -564,7 +457,7 @@ class ControlController extends ChangeNotifier {
     sendCommand(frame);
   }
 
-  /// **Sincronizar / Desincronizar luces con sirena**
+  /// ===Sincronizar / Desincronizar luces con sirena===
   void syncLightsWithSiren() {
     List<int> frame = [0xAA, 0x14, 0x26, 0x44];
     frame.addAll([0xB7, 0x98]); // CRC FORZADO
@@ -572,7 +465,7 @@ class ControlController extends ChangeNotifier {
     sendCommand(frame);
   }
 
-  /// **Autoajuste PA**
+  /// ===Autoajuste PA===
   void autoAdjustPA() {
     List<int> frame = [0xAA, 0x14, 0x27, 0x44];
     frame.addAll([0x77, 0xC9]); // CRC FORZADO
@@ -582,12 +475,23 @@ class ControlController extends ChangeNotifier {
     debugPrint("⏳ Esperar 30 segundos para el autoajuste PA.");
   }
 
-  BatteryLevel batteryLevel = BatteryLevel.full;
+  /// ===Desconectar Dispositivo===
+  void disconnectDevice() async {
+    if (connectedDevice != null) {
+      await connectedDevice!.disconnect();
+      debugPrint("🔴 Dispositivo desconectado.");
+      connectedDevice = null;
+    }
+  }
 
+  // Escucha notificaciones de una característica BLE y procesa las respuestas para detectar el estado de la batería.
   void listenForResponses(BluetoothCharacteristic characteristic) {
+    // Habilita las notificaciones para la característica BLE especificada.
     characteristic.setNotifyValue(true);
+
+    // Se suscribe a los cambios de valor (respuestas entrantes del dispositivo).
     characteristic.value.listen((response) {
-      // Imprimir la trama HEX para debug
+      // Convierte la respuesta a formato hexadecimal para debugging.
       String hexResponse =
           response
               .map((e) => e.toRadixString(16).padLeft(2, '0'))
@@ -595,13 +499,18 @@ class ControlController extends ChangeNotifier {
               .toUpperCase();
       debugPrint("📩 Respuesta HEX recibida: $hexResponse");
 
-      // Validar trama válida de estado
+      // Verifica si la respuesta es una trama válida del estado del sistema.
       if (response.length >= 7 &&
-          response[0] == 0xAA &&
-          response[1] == 0x18 &&
-          response[2] == 0x18 &&
+          response[0] == 0xAA && // Inicio de trama
+          response[1] == 0x18 && // Dirección o categoría de estado
+          response[2] == 0x18 && // Comando de estado del sistema
           response[3] == 0x55) {
+        // Indicador de respuesta válida
+
+        // Extrae el byte que representa el nivel de batería.
         int batteryByte = response[5];
+
+        // Asigna el estado de batería según el valor del byte recibido.
         switch (batteryByte) {
           case 0x14:
             debugPrint("🔋 Batería Completa / Carro encendido");
@@ -616,29 +525,36 @@ class ControlController extends ChangeNotifier {
             batteryLevel = BatteryLevel.low;
             break;
           default:
+            // Si el byte no coincide con ningún valor esperado, lo muestra como desconocido.
             debugPrint(
               "❓ Estado de batería desconocido: ${batteryByte.toRadixString(16)}",
             );
         }
       } else {
+        // Si la trama no es válida o no está relacionada con el estado de batería, se notifica.
         debugPrint(
           "❓ Trama no válida o no relacionada al estado de batería: $hexResponse",
         );
       }
 
-      // Actualiza UI si usas Provider u otro patrón reactivo
+      // Notifica a los listeners para actualizar la UI si se usa Provider, Riverpod, etc.
       notifyListeners();
     });
   }
 
-  /// **Desconectar Dispositivo**
-  void disconnectDevice() async {
-    if (connectedDevice != null) {
-      await connectedDevice!.disconnect();
-      debugPrint("🔴 Dispositivo desconectado.");
-      connectedDevice = null;
-    }
+  /// Envía el protocolo por BLE para que el hardware active el modo Classic (BT_PwAudio)
+  Future<void> sendActivateAudioModeOverBLE() async {
+    // Ejemplo de trama para cambiar al modo Audio (ajustala si es distinta)
+    final frame = [
+      0xAA,
+      0x14,
+      0x30,
+      0x44,
+      0xAB,
+      0xCD,
+      0xFF,
+    ]; // <- cámbiala si tenés otra
+    await sendCommand(frame); // Usa tu función real para enviar por BLE
+    print("📡 Comando enviado por BLE para activar BT_PwAudio.");
   }
-}
-
-//FIN ControlController
+} //FIN ControlController
