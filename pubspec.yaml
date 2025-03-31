@@ -30,6 +30,7 @@ dependencies:
     path: audio_streamer
   flutter_sound: ^9.25.4
   path_provider: ^2.1.5
+  get: ^4.7.2
 
 
 dev_dependencies:

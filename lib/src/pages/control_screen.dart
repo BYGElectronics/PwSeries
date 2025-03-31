@@ -124,9 +124,8 @@ class _ControlScreenState extends State<ControlScreen>
         image = "assets/images/Estados/battery_low.png";
         break;
     }
-    return Image.asset(image, width: 60);
+    return Image.asset(image, width: 30, height: 30);
   }
-
 
   @override
   void dispose() {
@@ -197,8 +196,8 @@ class _ControlScreenState extends State<ControlScreen>
         }
       });
     });
-  }
 
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +209,6 @@ class _ControlScreenState extends State<ControlScreen>
     double headerHeight = screenHeight * 0.16;
     double fondoWidth = screenWidth * 0.85;
     double fondoHeight = fondoWidth * 0.5;
-
 
     return Scaffold(
       body: Stack(
@@ -238,10 +236,21 @@ class _ControlScreenState extends State<ControlScreen>
               onPressed: () => Navigator.pop(context),
             ),
           ),
+
+          // 🔋 Aquí colocas la batería:
           Positioned(
-            top: 20,
+            top: 40,
             right: 20,
-            child: _buildBatteryIcon(),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return Image.asset(
+                  _controller.batteryImagePath,
+                  width: 40,
+                  height: 40,
+                );
+              },
+            ),
           ),
 
 

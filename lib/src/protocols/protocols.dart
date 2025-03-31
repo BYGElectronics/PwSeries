@@ -79,7 +79,5 @@ class Protocols {
     ); // CRC de desactivación
   }
 
-  static List<int> requestSystemStatus() {
-    return _buildCommand([0x14, 0x18, 0x44], [0x30, 0xF9]); // CRC `30F9`
-  }
+
 }

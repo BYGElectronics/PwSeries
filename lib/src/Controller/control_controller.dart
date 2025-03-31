@@ -1,45 +1,58 @@
 ///================================///
 ///     IMPORTACIONES NECESARIAS   ///
 ///================================///
-library;
+library; // Se utiliza para definir una biblioteca
 
-import 'dart:async'; // Proporciona herramientas para trabajar con programación asíncrona, como Future y Stream.
-import 'dart:convert';
-import 'package:flutter/material.dart'; // Framework principal de Flutter para construir interfaces de usuario.
-import 'package:flutter_blue_plus/flutter_blue_plus.dart' as Ble;
-import 'package:permission_handler/permission_handler.dart'; // Maneja permisos en tiempo de ejecución para acceder a hardware y funciones del dispositivo.
-import 'package:flutter_sound/flutter_sound.dart'; // Biblioteca para grabación y reproducción de audio.
-import 'package:path_provider/path_provider.dart'; // Permite acceder a directorios específicos del sistema de archivos, como caché y documentos.
-import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Maneja la comunicación con dispositivos Bluetooth Low Energy (BLE).
+import 'dart:async'; // Proporciona herramientas para trabajar con asincronía: Future, Stream, Timer, etc.
+import 'dart:convert'; // Permite codificación y decodificación de datos, útil para manejar ASCII, JSON, UTF8, etc.
+import 'package:flutter/material.dart'; // Framework principal de Flutter para construir interfaces gráficas.
+import 'package:flutter_blue_plus/flutter_blue_plus.dart'
+    as Ble; // Manejo de Bluetooth Low Energy (BLE), renombrado como Ble para diferenciarlo si se usa también flutter_blue_plus sin alias.
+import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Importación directa de BLE sin alias. Podría ser redundante si ya se usa la versión con alias (verificar si ambas son necesarias).
+import 'package:permission_handler/permission_handler.dart'; // Solicita y gestiona permisos en tiempo de ejecución (ej. Bluetooth, micrófono, ubicación).
+import 'package:flutter_sound/flutter_sound.dart'; // Biblioteca para grabar y reproducir audio, usada en la función de Push-To-Talk (PTT).
+import 'package:path_provider/path_provider.dart'; // Proporciona acceso a rutas del sistema de archivos (temporales, documentos, etc.), útil para guardar audios grabados.
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
-    as btClassic; // Biblioteca para manejar Bluetooth Classic, utilizado para conexiones seriales.
-import 'package:get/get.dart';
+    as btClassic; // Biblioteca para manejar Bluetooth Classic (Serial Port Profile), usada para la conexión de audio por PTT.
+import 'package:get/get.dart'; // Framework para manejo de estado, navegación y dependencias. (Actualmente **no se usa en tu código**, pero podría estar planeado para futuras integraciones).
 
-enum BatteryLevel { full, medium, low }
+enum BatteryLevel {
+  full,
+  medium,
+  low,
+} //Sirve para representar el estado de batería del dispositivo Bluetooth conectado
 
 class ControlController extends ChangeNotifier {
   BluetoothDevice?
-  connectedDevice; //Dispositivo BLE actualmente conectado. | Se usará para realizar operaciones de comunicación con el hardware.
+  connectedDevice; // Dispositivo BLE actualmente conectado, usado para operaciones de comunicación.
   btClassic.BluetoothConnection?
-  classicConnection; //Conexión Bluetooth Classic. | Se usará para realizar operaciones de comunicación serial.
+  classicConnection; // Conexión Bluetooth Classic activa, utilizada para transmisión de audio (PTT).
   BluetoothCharacteristic?
-  targetCharacteristic; //Característica BLE de escritura. | Se usa para enviar comandos al dispositivo BLE.
+  targetCharacteristic; // Característica BLE con permiso de escritura, usada para enviar comandos.
   final FlutterSoundRecorder _recorder =
-      FlutterSoundRecorder(); //Grabador de audio para manejar la funcionalidad de PTT (Push-to-Talk). | Permite iniciar y detener la grabación de audio.
+      FlutterSoundRecorder(); // Grabador de audio utilizado en la funcionalidad Push-To-Talk (PTT).
   bool isPTTActive =
-      false; //Estado del botón PTT. | Indica si el PTT está activado o desactivado.
-  String batteryImagePath = 'assets/images/Estados/battery_medium.png';
-  Timer? _batteryStatusTimer;
-  Timer? _batteryMonitorTimer;
-  late BluetoothDevice _device;
-  BatteryLevel batteryLevel = BatteryLevel.full;
-
-  late Ble.BluetoothService _service;
-  late Ble.BluetoothCharacteristic _characteristic;
-  late BluetoothCharacteristic _writeCharacteristic;
-
-  // Estado del botón PTT (reactivo)
-  RxBool isPttActive = false.obs;
+      false; // Estado actual del botón PTT; indica si está activado o desactivado.
+  String batteryImagePath =
+      'assets/images/Estados/battery_full.png'; // Ruta de la imagen que representa el nivel actual de batería.
+  Timer?
+  _batteryStatusTimer; // Temporizador para manejar el envío periódico de solicitudes de estado.
+  Timer?
+  _batteryMonitorTimer; // Temporizador encargado de monitorear el estado de batería en intervalos definidos.
+  late BluetoothDevice
+  _device; // Referencia local al dispositivo conectado, similar a `connectedDevice`.
+  BatteryLevel batteryLevel =
+      BatteryLevel
+          .full; // Nivel actual de batería, representado como enum: full, medium o low.
+  late Ble.BluetoothService
+  _service; // Servicio BLE descubierto en el dispositivo, utilizado para acceder a características.
+  late Ble.BluetoothCharacteristic
+  _characteristic; // Característica específica descubierta dentro del servicio BLE.
+  late BluetoothCharacteristic
+  _writeCharacteristic; // Característica específica con permisos de escritura, usada para enviar comandos.
+  RxBool isPttActive =
+      false
+          .obs; // Estado reactivo del botón PTT, útil para interfaces que usan programación reactiva (GetX).
 
   /// =======================================//
   /// CONFIGURACION DE DISPOSITIVO CONECTADO //
@@ -79,7 +92,7 @@ class ControlController extends ChangeNotifier {
 
   void startBatteryStatusMonitoring() {
     _batteryMonitorTimer?.cancel(); // Limpia si hay uno activo
-    _batteryMonitorTimer = Timer.periodic(Duration(seconds: 50), (_) {
+    _batteryMonitorTimer = Timer.periodic(Duration(seconds: 3), (_) {
       requestSystemStatus();
     });
   }
@@ -89,9 +102,9 @@ class ControlController extends ChangeNotifier {
     _batteryMonitorTimer = null;
   }
 
+  /// ==============================================//
+  /// DESCUBRIR LOS SERVICIOS Y CARACTERISTICAS BLE //
   /// =============================================//
-  /// DESCUBIR LOS SERVICIOS Y CARACTERISTICAS BLE //
-  /// ============================================//
 
   // Descubre los servicios del dispositivo BLE conectado, busca una característica de escritura y la asigna a 'targetCharacteristic'; si no hay, lo reporta en el log.
   Future<void> _discoverServices() async {
@@ -112,11 +125,23 @@ class ControlController extends ChangeNotifier {
           await characteristic.setNotifyValue(true);
           listenForResponses(characteristic);
 
-          // 🟡 Enviar protocolo de estado del sistema para obtener nivel de batería
-          List<int> batteryStatusCommand = ascii.encode("AA14184430F9FF");
+          List<int> batteryStatusCommand = [
+            0xAA,
+            0x14,
+            0x18,
+            0x44,
+            0x30,
+            0xF9,
+            0xFF,
+          ];
+
           await characteristic.write(
             batteryStatusCommand,
-            withoutResponse: true,
+            withoutResponse: false,
+          );
+
+          debugPrint(
+            "📤 Protocolo REAL enviado: ${batteryStatusCommand.map((e) => e.toRadixString(16).padLeft(2, '0')).join(' ').toUpperCase()}",
           );
 
           return;
@@ -152,13 +177,14 @@ class ControlController extends ChangeNotifier {
     List<int> asciiBytes = asciiCommand.codeUnits;
 
     try {
-      // Escribe esos bytes en la característica BLE.
       await targetCharacteristic!.write(asciiBytes, withoutResponse: false);
 
-      // Log de confirmación.
       debugPrint(
         "Comando ASCII enviado a ${connectedDevice!.platformName}: $asciiCommand",
       );
+
+      // ✅ Siempre que se envía un comando, solicitamos el estado de batería
+      //requestSystemStatus();
     } catch (e) {
       // Si algo falla en la escritura, se registra el error.
       debugPrint(
@@ -218,6 +244,7 @@ class ControlController extends ChangeNotifier {
     List<int> frame = [0xAA, 0x14, 0x07, 0x44, 0xCF, 0xC8, 0xFF];
     sendCommand(frame);
     debugPrint("✅ Sirena activada.");
+    requestSystemStatus();
   } //FIN activateSiren
 
   ///===AUXILIAR===
@@ -227,6 +254,7 @@ class ControlController extends ChangeNotifier {
     List<int> frame = [0xAA, 0x14, 0x08, 0x44, 0xCC, 0xF8, 0xFF];
     sendCommand(frame);
     debugPrint("✅ Auxiliar activado.");
+    requestSystemStatus();
   } //FIN activateAux
 
   ///===INTERCOMUNICADOR===
@@ -236,6 +264,7 @@ class ControlController extends ChangeNotifier {
     List<int> frame = [0xAA, 0x14, 0x12, 0x44, 0x32, 0xD9, 0xFF];
     sendCommand(frame);
     debugPrint("✅ Intercom activado.");
+    requestSystemStatus();
   } //FIN activateInter
 
   ///===HORN===
@@ -249,6 +278,8 @@ class ControlController extends ChangeNotifier {
     List<int> frame = [0xAA, 0x14, 0x09, 0x44, 0x0C, 0xA9, 0xFF];
     sendCommand(frame);
     debugPrint("✅ Horn alternado después de reset.");
+
+    requestSystemStatus();
   } //FIN toggleHorn
 
   ///===WAIL===
@@ -258,6 +289,8 @@ class ControlController extends ChangeNotifier {
     List<int> frame = [0xAA, 0x14, 0x10, 0x44, 0xF2, 0x78, 0xFF];
     sendCommand(frame);
     debugPrint("✅ Wail alternado.");
+
+    requestSystemStatus();
   } //FIN toggleWail
 
   /// =================//
@@ -339,6 +372,8 @@ class ControlController extends ChangeNotifier {
       isPTTActive = false;
       debugPrint("⛔ PTT desactivado.");
     }
+
+    requestSystemStatus();
   }
 
   ///===FUNCIONES PARA FUNCION DE PTT===
@@ -447,6 +482,7 @@ class ControlController extends ChangeNotifier {
     frame.addAll([0x77, 0x39]); // CRC FORZADO
     frame.add(0xFF);
     sendCommand(frame);
+    requestSystemStatus();
   }
 
   /// ===Cambiar Tono de Horn===
@@ -455,6 +491,7 @@ class ControlController extends ChangeNotifier {
     frame.addAll([0xB7, 0x68]); // CRC FORZADO
     frame.add(0xFF);
     sendCommand(frame);
+    requestSystemStatus();
   }
 
   /// ===Sincronizar / Desincronizar luces con sirena===
@@ -463,6 +500,7 @@ class ControlController extends ChangeNotifier {
     frame.addAll([0xB7, 0x98]); // CRC FORZADO
     frame.add(0xFF);
     sendCommand(frame);
+    requestSystemStatus();
   }
 
   /// ===Autoajuste PA===
@@ -473,6 +511,7 @@ class ControlController extends ChangeNotifier {
     sendCommand(frame);
 
     debugPrint("⏳ Esperar 30 segundos para el autoajuste PA.");
+    requestSystemStatus();
   }
 
   /// ===Desconectar Dispositivo===
@@ -484,61 +523,74 @@ class ControlController extends ChangeNotifier {
     }
   }
 
-  // Escucha notificaciones de una característica BLE y procesa las respuestas para detectar el estado de la batería.
   void listenForResponses(BluetoothCharacteristic characteristic) {
-    // Habilita las notificaciones para la característica BLE especificada.
     characteristic.setNotifyValue(true);
-
-    // Se suscribe a los cambios de valor (respuestas entrantes del dispositivo).
     characteristic.value.listen((response) {
-      // Convierte la respuesta a formato hexadecimal para debugging.
-      String hexResponse =
+      // HEX de depuración
+      String hex =
           response
               .map((e) => e.toRadixString(16).padLeft(2, '0'))
               .join(' ')
               .toUpperCase();
-      debugPrint("📩 Respuesta HEX recibida: $hexResponse");
+      debugPrint("📩 Respuesta HEX recibida: $hex");
 
-      // Verifica si la respuesta es una trama válida del estado del sistema.
-      if (response.length >= 7 &&
-          response[0] == 0xAA && // Inicio de trama
-          response[1] == 0x18 && // Dirección o categoría de estado
-          response[2] == 0x18 && // Comando de estado del sistema
-          response[3] == 0x55) {
-        // Indicador de respuesta válida
+      // 1️⃣ Detectar si la respuesta es eco ASCII (comienza con '41 41' = 'AA' en ASCII)
+      if (response.length > 3 && response[0] == 0x41 && response[1] == 0x41) {
+        debugPrint("🔴 Trama es un eco ASCII, intentamos decodificar...");
 
-        // Extrae el byte que representa el nivel de batería.
-        int batteryByte = response[5];
+        try {
+          String ascii = utf8.decode(response).trim();
+          final hexClean = ascii.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '');
+          final bytes = <int>[];
 
-        // Asigna el estado de batería según el valor del byte recibido.
-        switch (batteryByte) {
-          case 0x14:
-            debugPrint("🔋 Batería Completa / Carro encendido");
-            batteryLevel = BatteryLevel.full;
-            break;
-          case 0x15:
-            debugPrint("🟡 Batería Media / Carro apagado");
-            batteryLevel = BatteryLevel.medium;
-            break;
-          case 0x16:
-            debugPrint("🔴 Batería Baja");
-            batteryLevel = BatteryLevel.low;
-            break;
-          default:
-            // Si el byte no coincide con ningún valor esperado, lo muestra como desconocido.
-            debugPrint(
-              "❓ Estado de batería desconocido: ${batteryByte.toRadixString(16)}",
-            );
+          for (int i = 0; i < hexClean.length - 1; i += 2) {
+            bytes.add(int.parse(hexClean.substring(i, i + 2), radix: 16));
+          }
+
+          // 🔁 Reasignamos los bytes decodificados
+          response = bytes;
+        } catch (e) {
+          debugPrint("❌ Error al decodificar trama ASCII: $e");
+          return;
         }
-      } else {
-        // Si la trama no es válida o no está relacionada con el estado de batería, se notifica.
-        debugPrint(
-          "❓ Trama no válida o no relacionada al estado de batería: $hexResponse",
-        );
       }
 
-      // Notifica a los listeners para actualizar la UI si se usa Provider, Riverpod, etc.
-      notifyListeners();
+      // 2️⃣ Validación real del frame esperado de estado de sistema
+      if (response.length >= 7 &&
+          response[0] == 0xAA &&
+          response[1] == 0x18 &&
+          response[2] == 0x18 &&
+          response[3] == 0x55) {
+        final batteryByte = response[5];
+        debugPrint(
+          "🔋 Byte de batería: 0x${batteryByte.toRadixString(16).toUpperCase()}",
+        );
+
+        switch (batteryByte) {
+          case 0x14:
+            batteryLevel = BatteryLevel.full;
+            batteryImagePath = 'assets/images/Estados/battery_full.png';
+            debugPrint("✅ Batería COMPLETA");
+            break;
+          case 0x15:
+            batteryLevel = BatteryLevel.medium;
+            batteryImagePath = 'assets/images/Estados/battery_medium.png';
+            debugPrint("⚠️ Batería MEDIA");
+            break;
+          case 0x16:
+            batteryLevel = BatteryLevel.low;
+            batteryImagePath = 'assets/images/Estados/battery_low.png';
+            debugPrint("🚨 Batería BAJA");
+            break;
+          default:
+            debugPrint("❓ Byte de batería desconocido: $batteryByte");
+            break;
+        }
+
+        notifyListeners();
+      } else {
+        debugPrint("⚠️ Trama no coincide con estado de sistema esperada.");
+      }
     });
   }
 

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../Controller/control_controller.dart';
 import '../Controller/idioma_controller.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-
 import '../localization/app_localization.dart';
 
 class ControlConfigScreen extends StatefulWidget {
@@ -24,8 +23,8 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
     with SingleTickerProviderStateMixin {
   late final BluetoothDevice _device;
   late final ControlController _controller;
-  String batteryStatusImage = "assets/images/Estados/battery_full.png"; // Valor por defecto
-
+  String batteryStatusImage =
+      "assets/images/Estados/battery_full.png"; // Valor por defecto
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -39,8 +38,6 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
     super.initState();
     _device = widget.connectedDevice;
     _controller = widget.controller;
-
-
 
     _controller.setDevice(_device);
 
@@ -128,7 +125,6 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
             ),
           ),
 
-
           Positioned(
             top: 50,
             left: 10,
@@ -138,14 +134,18 @@ class _ControlConfigScreenState extends State<ControlConfigScreen>
             ),
           ),
 
-          // 🔋 Aquí colocas la batería:
           Positioned(
             top: 40,
             right: 20,
-            child: Image.asset(
-              _controller.batteryImagePath,
-              width: 40,
-              height: 40,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return Image.asset(
+                  _controller.batteryImagePath,
+                  width: 40,
+                  height: 40,
+                );
+              },
             ),
           ),
 
