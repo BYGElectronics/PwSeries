@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart'; // Proporciona acceso a rutas
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
     as btClassic; // Biblioteca para manejar Bluetooth Classic (Serial Port Profile), usada para la conexión de audio por PTT.
 import 'package:get/get.dart'; // Framework para manejo de estado, navegación y dependencias. (Actualmente **no se usa en tu código**, pero podría estar planeado para futuras integraciones).
+import 'dart:typed_data';
 
 enum BatteryLevel {
   full,
@@ -53,6 +54,8 @@ class ControlController extends ChangeNotifier {
   RxBool isPttActive =
       false
           .obs; // Estado reactivo del botón PTT, útil para interfaces que usan programación reactiva (GetX).
+
+  StreamSubscription? _micStreamSubscription;
 
   /// =======================================//
   /// CONFIGURACION DE DISPOSITIVO CONECTADO //
@@ -300,80 +303,144 @@ class ControlController extends ChangeNotifier {
   // Alterna el estado del PTT activando Bluetooth Classic y el micrófono mientras esté presionado, y al soltar, los desactiva y reconecta BLE automáticamente.
   Future<void> togglePTT() async {
     if (!isPTTActive) {
-      // Paso 1: Verifica conexión BLE
       if (connectedDevice == null) {
         debugPrint("❌ No hay dispositivo BLE conectado.");
         return;
       }
 
-      // Paso 2: Enviar protocolo para cambiar al modo BT_PwAudio
-      List<int> activateClassicModeFrame = [
-        0xAA,
-        0x14,
-        0x30,
-        0x44,
-        0xAB,
-        0xCD,
-        0xFF,
-      ]; // Puedes ajustar el CRC si tienes el correcto
-      await sendCommand(activateClassicModeFrame);
-      debugPrint("📡 Protocolo para activar BT_PwAudio enviado por BLE.");
+      // Paso 1: Enviar protocolo BLE para activar modo Audio Classic
+      List<int> activateAudioMode = [0xAA, 0x14, 0x30, 0x44, 0xAB, 0xCD, 0xFF];
+      await sendCommand(activateAudioMode);
+      debugPrint("📡 Protocolo BT_PwAudio enviado");
 
-      // Paso 3: Esperar breve delay para cambio de perfil
-      await Future.delayed(Duration(seconds: 2));
+      // Paso 2: Espera breve para que el hardware cambie a modo Classic
+      await Future.delayed(const Duration(seconds: 2));
 
-      // Paso 4: Desconectar BLE temporalmente
-      await connectedDevice!.disconnect();
-      debugPrint("🔴 BLE desconectado temporalmente.");
-
-      // Paso 5: Obtener la MAC y conectar Classic
+      // Paso 3: Conectar Classic sin escanear, usando MAC ya conocida
       String mac = connectedDevice!.remoteId.toString();
-      await _activateBluetoothClassic(mac);
+      await _connectClassicIfRemembered(mac);
 
-      // Paso 6: Pedir permiso de micrófono
-      if (!await _requestMicrophonePermission()) {
-        debugPrint("🚫 Permiso de micrófono denegado.");
-        return;
-      }
+      // Paso 4: Permisos de micrófono
+      if (!await _requestMicrophonePermission()) return;
 
-      // Paso 7: Iniciar grabación
-      await _startMicrophone();
+      // Paso 5: Activar transmisión de audio en vivo
+      await _startLiveMicToClassic();
 
-      // Paso 8: Enviar protocolo de PTT activado
+      // Paso 6: Enviar protocolo de activación PTT
       List<int> frame = [0xAA, 0x14, 0x11, 0x44, 0x32, 0x29, 0xFF];
       await sendCommand(frame);
 
       isPTTActive = true;
-      debugPrint("🎙️ PTT activado, transmitiendo...");
+      debugPrint("🎙️ PTT ACTIVADO (audio en tiempo real)");
     } else {
-      // Paso 1: Detener grabación y Classic
-      await _stopMicrophone();
+      // Paso 1: Detener transmisión y cerrar conexión Classic
+      await _stopLiveMicToClassic();
       await _deactivateBluetoothClassic();
 
-      // Paso 2: Reconectar BLE
-      if (connectedDevice != null) {
-        await connectedDevice!.connect();
-        await _discoverServices();
-        debugPrint("🔵 BLE reconectado.");
-      }
-
-      // Paso 3: Enviar protocolo para desactivar PTT
-      List<int> frame = [
-        0xAA,
-        0x14,
-        0x11,
-        0x44,
-        0x32,
-        0x29,
-        0xFF,
-      ]; // mismo frame que activa también desactiva
+      // Paso 2: Enviar protocolo de desactivación PTT
+      List<int> frame = [0xAA, 0x14, 0x11, 0x44, 0x32, 0x29, 0xFF];
       await sendCommand(frame);
 
       isPTTActive = false;
-      debugPrint("⛔ PTT desactivado.");
+      debugPrint("⛔ PTT DESACTIVADO");
     }
 
-    requestSystemStatus();
+    requestSystemStatus(); // Consulta de batería al final
+  }
+
+  Future<void> _startLiveMicToClassic() async {
+    try {
+      if (!_recorder.isRecording) {
+        await _recorder.openRecorder();
+
+        final controller = StreamController<Uint8List>();
+
+        controller.stream.listen((chunk) {
+          debugPrint("🎧 Enviando chunk de ${chunk.length} bytes");
+          if (classicConnection != null && classicConnection!.isConnected) {
+            classicConnection!.output.add(chunk);
+            classicConnection!.output.allSent;
+          }
+        });
+
+        await _recorder.startRecorder(
+          codec: Codec.pcm16,
+          numChannels: 1,
+          sampleRate: 8000, // <- MÁS COMPATIBLE
+          toStream: controller.sink,
+        );
+
+
+        debugPrint("🎤 Transmisión de audio en tiempo real INICIADA");
+      }
+    } catch (e) {
+      debugPrint("❌ Error iniciando transmisión en vivo: $e");
+    }
+  }
+
+  Future<void> _stopLiveMicToClassic() async {
+    try {
+      if (_recorder.isRecording) {
+        await _recorder.stopRecorder();
+        await _recorder.closeRecorder();
+        debugPrint("⛔ Transmisión de audio DETENIDA");
+      }
+    } catch (e) {
+      debugPrint("❌ Error deteniendo audio en vivo: $e");
+    }
+  }
+
+  Future<void> _connectClassicIfRemembered(String mac) async {
+    try {
+      final bondedDevices =
+      await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
+
+      final target = bondedDevices.firstWhere(
+            (d) =>
+        d.address == mac &&
+            (d.name == 'BT_PWAudio' || d.name == 'BT_PWData'),
+        orElse: () => throw Exception("⚠️ Dispositivo Classic no encontrado"),
+      );
+
+      if (classicConnection == null || !classicConnection!.isConnected) {
+        classicConnection = await btClassic.BluetoothConnection.toAddress(mac);
+        debugPrint("✅ Conexión Classic establecida con $mac");
+      } else {
+        debugPrint("🔵 Classic ya estaba conectado");
+      }
+    } catch (e) {
+      debugPrint("❌ Error al conectar a Classic recordado: $e");
+    }
+  }
+
+
+  Future<void> _connectClassicFromBonded(String bleMac) async {
+    debugPrint("🔍 Buscando emparejado: $bleMac con nombre válido...");
+
+    try {
+      List<btClassic.BluetoothDevice> bondedDevices =
+          await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
+
+      final device = bondedDevices.firstWhere(
+        (d) =>
+            d.address == bleMac &&
+            (d.name == 'BT_PWAudio' || d.name == 'BT_PWData'),
+        orElse: () => throw Exception("Dispositivo emparejado no encontrado"),
+      );
+
+      if (classicConnection != null && classicConnection!.isConnected) {
+        debugPrint('✅ Classic ya conectado.');
+        return;
+      }
+
+      classicConnection = await btClassic.BluetoothConnection.toAddress(
+        device.address,
+      );
+
+      debugPrint('✅ Conectado a ${device.name} (Classic)');
+    } catch (e) {
+      debugPrint("❌ Error al conectar Classic desde emparejados: $e");
+    }
   }
 
   ///===FUNCIONES PARA FUNCION DE PTT===
@@ -394,23 +461,32 @@ class ControlController extends ChangeNotifier {
   Future<void> _startMicrophone() async {
     try {
       if (!_recorder.isRecording) {
-        // Abre el grabador de audio
         await _recorder.openRecorder();
 
-        // Obtiene un directorio temporal en el dispositivo
-        final tempDir = await getTemporaryDirectory();
-        // Construye la ruta completa del archivo de audio temporal
-        final tempPath = '${tempDir.path}/audio_ptt.aac';
+        final controller = StreamController<Uint8List>();
 
-        // Inicia la grabación y especifica el archivo de salida y el códec
-        await _recorder.startRecorder(toFile: tempPath, codec: Codec.aacADTS);
+        controller.stream.listen((chunk) {
+          debugPrint("🔊 Chunk de ${chunk.length} bytes");
+          if (classicConnection?.isConnected == true) {
+            classicConnection!.output.add(chunk);
+            classicConnection!.output.allSent;
+          }
+        });
 
-        debugPrint("🎤 Micrófono activado y grabando audio...");
+
+        await _recorder.startRecorder(
+          codec: Codec.pcm16, // Ideal para transmisión cruda
+          numChannels: 1, // Mono
+          sampleRate: 8000, // Compatible con Classic BT
+          toStream: controller.sink,
+        );
+
+        debugPrint("🎤 Micrófono activado y transmitiendo por Classic");
       }
     } catch (e) {
-      debugPrint("❌ Error al activar el micrófono: $e");
+      debugPrint("❌ Error al iniciar micrófono en vivo: $e");
     }
-  } //FIN _startMicrophone
+  }
 
   // Detiene la grabacion si esta activa, cierra el recorder y muestra un mensaje en la consola.
   Future<void> _stopMicrophone() async {
@@ -421,32 +497,48 @@ class ControlController extends ChangeNotifier {
         debugPrint("⛔ Micrófono detenido correctamente.");
       }
     } catch (e) {
-      debugPrint("❌ Error al detener el micrófono: $e");
+      debugPrint("❌ Error al detener micrófono: $e");
     }
-  } //FIN _stopMicrophone
+  }
 
   // Conecta el Bluetooth Classic a una MAC especifica si no esta ya conectado y la direccion ya no es valida
-  Future<void> _activateBluetoothClassic(String address) async {
-    debugPrint("🔄 Intentando conectar Bluetooth Classic a $address...");
+  Future<void> _activateBluetoothClassic(String bleMac) async {
+    debugPrint(
+      "🔍 Buscando dispositivo Classic emparejado con MAC: $bleMac...",
+    );
+
     try {
-      if (address.isEmpty) {
-        debugPrint('❌ Dirección MAC no disponible.');
+      // 1. Obtener lista de dispositivos emparejados
+      List<btClassic.BluetoothDevice> bondedDevices =
+          await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
+
+      // 2. Buscar dispositivo con misma MAC y nombre esperado
+      final matchedDevice = bondedDevices.firstWhere(
+        (device) =>
+            device.address == bleMac &&
+            (device.name == 'BT_PWAudio' || device.name == 'BT_PWData'),
+        orElse:
+            () =>
+                throw Exception(
+                  "No se encontró dispositivo emparejado que coincida.",
+                ),
+      );
+
+      // 3. Verifica si ya está conectado
+      if (classicConnection != null && classicConnection!.isConnected) {
+        debugPrint('✅ Classic ya conectado.');
         return;
       }
 
-      // Si no está conectado aún, intenta la conexión usando la librería
-      if (classicConnection == null || !classicConnection!.isConnected) {
-        classicConnection = await btClassic.BluetoothConnection.toAddress(
-          address,
-        );
-        debugPrint('✅ Bluetooth Classic conectado a $address');
-      } else {
-        debugPrint('🔵 Bluetooth Classic ya está activo.');
-      }
+      // 4. Conectar directamente
+      classicConnection = await btClassic.BluetoothConnection.toAddress(
+        matchedDevice.address,
+      );
+      debugPrint('✅ Conectado a ${matchedDevice.name} en modo Classic.');
     } catch (e) {
-      debugPrint('❌ Error activando Bluetooth Classic: $e');
+      debugPrint("❌ Error al conectar Classic: $e");
     }
-  } //FIN _activateBluetoothClassic
+  }
 
   // Cierra la conexión Bluetooth Classic si está activa y restablece classicConnection a null.
   Future<void> _deactivateBluetoothClassic() async {

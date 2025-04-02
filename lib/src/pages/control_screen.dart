@@ -6,6 +6,7 @@ import 'package:pw/src/Controller/control_controller.dart';
 import 'package:pw/src/Controller/home_controller.dart';
 import '../Controller/idioma_controller.dart';
 
+
 class ControlScreen extends StatefulWidget {
   final BluetoothDevice connectedDevice;
   final ControlController controller;
@@ -196,7 +197,6 @@ class _ControlScreenState extends State<ControlScreen>
         }
       });
     });
-
   }
 
   @override
@@ -252,7 +252,6 @@ class _ControlScreenState extends State<ControlScreen>
               },
             ),
           ),
-
 
           Positioned(
             top: 50,
