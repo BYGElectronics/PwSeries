@@ -1,0 +1,51 @@
+com.bygelectronics.pw.app-core-1.13.1-0 /Users/mac/.gradle/caches/transforms-3/0d9940c8cc9538fec11e947157f8caae/transformed/core-1.13.1/res
+com.bygelectronics.pw.app-jetified-lifecycle-runtime-ktx-2.7.0-1 /Users/mac/.gradle/caches/transforms-3/101f246da36f9e1e5d00c6d090fb3213/transformed/jetified-lifecycle-runtime-ktx-2.7.0/res
+com.bygelectronics.pw.app-jetified-core-ktx-1.13.1-2 /Users/mac/.gradle/caches/transforms-3/1793ed9399d6856b105daa52bfc8475d/transformed/jetified-core-ktx-1.13.1/res
+com.bygelectronics.pw.app-jetified-lifecycle-process-2.7.0-3 /Users/mac/.gradle/caches/transforms-3/24015999739f0daa55981feacf3dccb6/transformed/jetified-lifecycle-process-2.7.0/res
+com.bygelectronics.pw.app-jetified-flutter_sound_core-9.28.0-4 /Users/mac/.gradle/caches/transforms-3/2493f8833eb17980a5b2c40d6c0a9b06/transformed/jetified-flutter_sound_core-9.28.0/res
+com.bygelectronics.pw.app-lifecycle-livedata-core-2.7.0-5 /Users/mac/.gradle/caches/transforms-3/32ba27aa41403db7f7907112e83ebbff/transformed/lifecycle-livedata-core-2.7.0/res
+com.bygelectronics.pw.app-jetified-lifecycle-viewmodel-ktx-2.7.0-6 /Users/mac/.gradle/caches/transforms-3/3618d759765c65878d290ccef003177e/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/res
+com.bygelectronics.pw.app-jetified-window-java-1.2.0-7 /Users/mac/.gradle/caches/transforms-3/42a2f81fdbc8d3db597743900a012379/transformed/jetified-window-java-1.2.0/res
+com.bygelectronics.pw.app-recyclerview-1.0.0-8 /Users/mac/.gradle/caches/transforms-3/44e8bcdc6463a22a6c5e7fb1a97cffca/transformed/recyclerview-1.0.0/res
+com.bygelectronics.pw.app-jetified-activity-1.8.1-9 /Users/mac/.gradle/caches/transforms-3/45dd00958984c5a1ea65316dcfca19fd/transformed/jetified-activity-1.8.1/res
+com.bygelectronics.pw.app-jetified-fragment-ktx-1.7.1-10 /Users/mac/.gradle/caches/transforms-3/48f8cc5337da49f1ec28be37c5799617/transformed/jetified-fragment-ktx-1.7.1/res
+com.bygelectronics.pw.app-lifecycle-runtime-2.7.0-11 /Users/mac/.gradle/caches/transforms-3/4ed54e4d9be402caddb6447b8c7c57a5/transformed/lifecycle-runtime-2.7.0/res
+com.bygelectronics.pw.app-jetified-profileinstaller-1.3.1-12 /Users/mac/.gradle/caches/transforms-3/4f5e3c870024a02f4e2ec1ce339f3021/transformed/jetified-profileinstaller-1.3.1/res
+com.bygelectronics.pw.app-slidingpanelayout-1.2.0-13 /Users/mac/.gradle/caches/transforms-3/577dfeee08d952c780be908036015c3e/transformed/slidingpanelayout-1.2.0/res
+com.bygelectronics.pw.app-jetified-startup-runtime-1.1.1-14 /Users/mac/.gradle/caches/transforms-3/584d6fc6934ab539fab8f5d167795982/transformed/jetified-startup-runtime-1.1.1/res
+com.bygelectronics.pw.app-fragment-1.7.1-15 /Users/mac/.gradle/caches/transforms-3/5965b15f81e27fc8c05132f451151309/transformed/fragment-1.7.1/res
+com.bygelectronics.pw.app-jetified-activity-ktx-1.8.1-16 /Users/mac/.gradle/caches/transforms-3/5a54490f355fca92987547c0283be487/transformed/jetified-activity-ktx-1.8.1/res
+com.bygelectronics.pw.app-jetified-appcompat-resources-1.3.0-17 /Users/mac/.gradle/caches/transforms-3/60e00c7e5b8314204363a54f26418120/transformed/jetified-appcompat-resources-1.3.0/res
+com.bygelectronics.pw.app-jetified-annotation-experimental-1.4.0-18 /Users/mac/.gradle/caches/transforms-3/641b50c68cb2b1ff97683e8ff5625a05/transformed/jetified-annotation-experimental-1.4.0/res
+com.bygelectronics.pw.app-jetified-datastore-preferences-release-19 /Users/mac/.gradle/caches/transforms-3/6ae1e66bd6f573d058412bfc30ee5117/transformed/jetified-datastore-preferences-release/res
+com.bygelectronics.pw.app-lifecycle-viewmodel-2.7.0-20 /Users/mac/.gradle/caches/transforms-3/79d685ce02e7ae0bf4d1a7711b6ccfd8/transformed/lifecycle-viewmodel-2.7.0/res
+com.bygelectronics.pw.app-jetified-datastore-core-release-21 /Users/mac/.gradle/caches/transforms-3/7c55878a59cd296cf65e69a10d0cf883/transformed/jetified-datastore-core-release/res
+com.bygelectronics.pw.app-coordinatorlayout-1.0.0-22 /Users/mac/.gradle/caches/transforms-3/7fc9728ed74f1b18dbc7a462aa7df963/transformed/coordinatorlayout-1.0.0/res
+com.bygelectronics.pw.app-jetified-savedstate-ktx-1.2.1-23 /Users/mac/.gradle/caches/transforms-3/849150dbbef65ec840d472f32c1cfd1a/transformed/jetified-savedstate-ktx-1.2.1/res
+com.bygelectronics.pw.app-jetified-lifecycle-viewmodel-savedstate-2.7.0-24 /Users/mac/.gradle/caches/transforms-3/8cb063b7d52a340d0cac165d3ef83467/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/res
+com.bygelectronics.pw.app-appcompat-1.3.0-25 /Users/mac/.gradle/caches/transforms-3/8cf0d394f3b8345d36f5f3ffa350fe26/transformed/appcompat-1.3.0/res
+com.bygelectronics.pw.app-jetified-core-1.0.0-26 /Users/mac/.gradle/caches/transforms-3/a07ae74db61305e4eb184d66e68d3767/transformed/jetified-core-1.0.0/res
+com.bygelectronics.pw.app-jetified-savedstate-1.2.1-27 /Users/mac/.gradle/caches/transforms-3/a32bbc3b99a61b60d73328882dbf39ff/transformed/jetified-savedstate-1.2.1/res
+com.bygelectronics.pw.app-jetified-tracing-1.2.0-28 /Users/mac/.gradle/caches/transforms-3/aa7a524446307c4cdb7706abaae000ba/transformed/jetified-tracing-1.2.0/res
+com.bygelectronics.pw.app-jetified-datastore-release-29 /Users/mac/.gradle/caches/transforms-3/c4af428362a141f5c1565fd70cffc2e4/transformed/jetified-datastore-release/res
+com.bygelectronics.pw.app-lifecycle-livedata-2.7.0-30 /Users/mac/.gradle/caches/transforms-3/caccf9757753ca97c69ed3509bf578b0/transformed/lifecycle-livedata-2.7.0/res
+com.bygelectronics.pw.app-preference-1.2.1-31 /Users/mac/.gradle/caches/transforms-3/cdf5e582263560d8a7da6768f6ce40a4/transformed/preference-1.2.1/res
+com.bygelectronics.pw.app-media-1.4.1-32 /Users/mac/.gradle/caches/transforms-3/d5f0557b237905a5d36d146b6f794b62/transformed/media-1.4.1/res
+com.bygelectronics.pw.app-core-runtime-2.2.0-33 /Users/mac/.gradle/caches/transforms-3/d68c2d2814fba064f02155b806ecb875/transformed/core-runtime-2.2.0/res
+com.bygelectronics.pw.app-jetified-lifecycle-livedata-core-ktx-2.7.0-34 /Users/mac/.gradle/caches/transforms-3/d87ea2a925eed21c0ec05a8c18013d37/transformed/jetified-lifecycle-livedata-core-ktx-2.7.0/res
+com.bygelectronics.pw.app-transition-1.4.1-35 /Users/mac/.gradle/caches/transforms-3/f376de0a9010aea16b132f2e434a7584/transformed/transition-1.4.1/res
+com.bygelectronics.pw.app-jetified-window-1.2.0-36 /Users/mac/.gradle/caches/transforms-3/f76e165fb4bd097f5b5d26dd9f202c96/transformed/jetified-window-1.2.0/res
+com.bygelectronics.pw.app-packaged_res-37 /Users/mac/.pub-cache/hosted/pub.dev/flutter_audio_capture-1.1.8/android/build/intermediates/packaged_res/debug
+com.bygelectronics.pw.app-packaged_res-38 /Users/mac/.pub-cache/hosted/pub.dev/flutter_blue_plus_android-3.0.0/android/build/intermediates/packaged_res/debug
+com.bygelectronics.pw.app-packaged_res-39 /Users/mac/.pub-cache/hosted/pub.dev/flutter_bluetooth_serial-0.4.0/android/build/intermediates/packaged_res/debug
+com.bygelectronics.pw.app-packaged_res-40 /Users/mac/.pub-cache/hosted/pub.dev/flutter_sound-9.28.0/android/build/intermediates/packaged_res/debug
+com.bygelectronics.pw.app-packaged_res-41 /Users/mac/.pub-cache/hosted/pub.dev/path_provider_android-2.2.16/android/build/intermediates/packaged_res/debug
+com.bygelectronics.pw.app-packaged_res-42 /Users/mac/.pub-cache/hosted/pub.dev/permission_handler_android-12.1.0/android/build/intermediates/packaged_res/debug
+com.bygelectronics.pw.app-packaged_res-43 /Users/mac/.pub-cache/hosted/pub.dev/shared_preferences_android-2.4.8/android/build/intermediates/packaged_res/debug
+com.bygelectronics.pw.app-pngs-44 /Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/build/generated/res/pngs/debug
+com.bygelectronics.pw.app-resValues-45 /Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/build/generated/res/resValues/debug
+com.bygelectronics.pw.app-packageDebugResources-46 /Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.bygelectronics.pw.app-packageDebugResources-47 /Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.bygelectronics.pw.app-merged_res-48 /Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/build/intermediates/merged_res/debug
+com.bygelectronics.pw.app-debug-49 /Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/src/debug/res
+com.bygelectronics.pw.app-main-50 /Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/src/main/res
