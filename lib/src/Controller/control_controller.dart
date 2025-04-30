@@ -9,6 +9,7 @@ import 'package:flutter/material.dart'; // Framework principal de Flutter para c
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'
     as Ble; // Manejo de Bluetooth Low Energy (BLE), renombrado como Ble para diferenciarlo si se usa también flutter_blue_plus sin alias.
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Importación directa de BLE sin alias. Podría ser redundante si ya se usa la versión con alias (verificar si ambas son necesarias).
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' as ble;
 import 'package:permission_handler/permission_handler.dart'; // Solicita y gestiona permisos en tiempo de ejecución (ej. Bluetooth, micrófono, ubicación).
 import 'package:flutter_sound/flutter_sound.dart'; // Biblioteca para grabar y reproducir audio, usada en la función de Push-To-Talk (PTT).
 import 'package:path_provider/path_provider.dart'; // Proporciona acceso a rutas del sistema de archivos (temporales, documentos, etc.), útil para guardar audios grabados.
@@ -24,10 +25,23 @@ enum BatteryLevel {
 } //Sirve para representar el estado de batería del dispositivo Bluetooth conectado
 
 class ControlController extends ChangeNotifier {
-  BluetoothDevice?
-  connectedDevice; // Dispositivo BLE actualmente conectado, usado para operaciones de comunicación.
-  btClassic.BluetoothConnection?
-  classicConnection; // Conexión Bluetooth Classic activa, utilizada para transmisión de audio (PTT).
+  bool get _isPttActive => isPTTActive;
+  String? _bondedMac;
+  /// Dispositivo BLE actualmente conectado (BLE).
+  Ble.BluetoothDevice? connectedBleDevice;
+
+  /// Dispositivo emparejado (Classic) cuya bond queremos vigilar.
+  btClassic.BluetoothDevice? connectedClassicDevice;
+  // ① Notifier que la UI puede escuchar para volver a configuración
+  final ValueNotifier<bool> shouldSetup = ValueNotifier(false);
+  // ② Timer interno para chequeo de bond periódicamente
+  Timer? _bondMonitorTimer;
+  bool _isSirenActive = false;
+  bool get isSirenActive => _isSirenActive;
+  final ValueNotifier<bool> isBleConnected = ValueNotifier(false);
+  BluetoothDevice? connectedDevice; // Dispositivo BLE actualmente conectado, usado para operaciones de comunicación.
+  BluetoothDevice? connectedDeviceBond; // Dispositivo BLE actualmente conectado, usado para operaciones de comunicación.
+  btClassic.BluetoothConnection? classicConnection; // Conexión Bluetooth Classic activa, utilizada para transmisión de audio (PTT).
   BluetoothCharacteristic?
   targetCharacteristic; // Característica BLE con permiso de escritura, usada para enviar comandos.
   final FlutterSoundRecorder _recorder =
@@ -49,8 +63,7 @@ class ControlController extends ChangeNotifier {
   _service; // Servicio BLE descubierto en el dispositivo, utilizado para acceder a características.
   late Ble.BluetoothCharacteristic
   _characteristic; // Característica específica descubierta dentro del servicio BLE.
-  late BluetoothCharacteristic
-  _writeCharacteristic; // Característica específica con permisos de escritura, usada para enviar comandos.
+  BluetoothCharacteristic? _writeCharacteristic; // Característica específica con permisos de escritura, usada para enviar comandos.
   RxBool isPttActive =
       false
           .obs; // Estado reactivo del botón PTT, útil para interfaces que usan programación reactiva (GetX).
@@ -62,25 +75,75 @@ class ControlController extends ChangeNotifier {
   /// =======================================//
 
   // Configura el dispositivo BLE conectado, guarda su referencia y busca sus servicios disponibles.
-  void setDevice(BluetoothDevice device) async {
-    // Guarda el dispositivo BLE seleccionado
+  // Al conectar el dispositivo:
+  Future<void> setDevice(BluetoothDevice device) async {
+    // guardar referencia…
     connectedDevice = device;
+    // activar el notifier
+    isBleConnected.value = true;
 
-    // Descubre los servicios y características del dispositivo conectado
+    // opcional: re-escuchar desconexiones automáticas
+    device.connectionState.listen((state) {
+      isBleConnected.value = (state == BluetoothConnectionState.connected);
+    });
+
     await _discoverServices();
-  } //FIN setDevice
-
-  void setWriteCharacteristic(
-    BluetoothService service,
-    BluetoothCharacteristic charac,
-  ) {
-    _service = service;
-    _writeCharacteristic = charac;
   }
 
+  /// Llama esto justo después de conectar y hacer setDevice(...)
+  void startBondMonitoring() {
+    _bondMonitorTimer?.cancel();
+    _bondMonitorTimer = Timer.periodic(
+      const Duration(seconds: 5),
+          (_) => _checkStillBonded(),
+    );
+  }
+
+  /// Detén el monitoreo cuando ya no sea necesario
+  void stopBondMonitoring() {
+    _bondMonitorTimer?.cancel();
+    _bondMonitorTimer = null;
+  }
+
+  /// Comprueba si el dispositivo sigue en la lista de emparejados.
+  Future<void> _checkStillBonded() async {
+    if (_bondedMac == null) {
+      _fireSetup();
+      return;
+    }
+    try {
+      final bonded =
+      await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
+      final stillPaired = bonded.any((d) => d.address == _bondedMac);
+      if (!stillPaired) {
+        _fireSetup();
+      }
+    } catch (e) {
+      debugPrint("Error comprobando bond: $e");
+    }
+  }
+
+
+  void _fireSetup() {
+    stopBondMonitoring();
+    shouldSetup.value = true;
+  }
+
+  /// Guarda el Bluetooth Classic emparejado y arranca el monitor de bond
+  void setDeviceBond(BluetoothDevice bleDevice) {
+    // BLE Device tiene .id.id (flutter_blue_plus)
+    _bondedMac = bleDevice.id.id;
+    startBondMonitoring();
+  }
+
+  void setWriteCharacteristic(BluetoothCharacteristic characteristic) {
+    _writeCharacteristic = characteristic;
+  }
+
+
   Future<void> sendBtCommand(String command) async {
-    if (_writeCharacteristic.properties.write) {
-      await _writeCharacteristic.write(
+    if (_writeCharacteristic!.properties.write) {
+      await _writeCharacteristic?.write(
         utf8.encode(command),
         withoutResponse: true,
       );
@@ -91,6 +154,11 @@ class ControlController extends ChangeNotifier {
     isPttActive.value = true;
     await sendBtCommand("PTT_ON");
     // Aquí podrías iniciar lógica Classic BT si aplica
+  }
+
+  Future<void> disconnectClassic() async {
+    // Invoca tu método privado
+    await _deactivateBluetoothClassic();
   }
 
   void startBatteryStatusMonitoring() {
@@ -242,13 +310,29 @@ class ControlController extends ChangeNotifier {
 
   ///===SIRENA===
   // Activa la sirena enviando el frame [0xAA, 0x14, 0x07, 0x44, 0xCF, 0xC8, 0xFF] por BLE y muestra confirmación en consola.
+  /// Activa la sirena
   void activateSiren() {
+    _isSirenActive = true;
+    notifyListeners();
+
     // Enviar el protocolo para activar Sirena
     List<int> frame = [0xAA, 0x14, 0x07, 0x44, 0xCF, 0xC8, 0xFF];
     sendCommand(frame);
     debugPrint("✅ Sirena activada.");
     requestSystemStatus();
-  } //FIN activateSiren
+  }
+
+  /// 👇 Nuevo método para desactivar la sirena
+  void deactivateSiren() {
+    _isSirenActive = false;
+    notifyListeners();
+
+    // Enviar el protocolo para desactivar Sirena (trama con payload 0)
+    List<int> frame = [0xAA, 0x14, 0x07, 0x00, 0x00, 0x00, 0xFF];
+    sendCommand(frame);
+    debugPrint("⛔ Sirena desactivada.");
+    requestSystemStatus();
+  }
 
   ///===AUXILIAR===
   // Activa la salida Auxiliar enviando el frame [0xAA, 0x14, 0x08, 0x44, 0xCC, 0xF8, 0xFF] por BLE y muestra confirmación en consola.
@@ -263,11 +347,7 @@ class ControlController extends ChangeNotifier {
   ///===INTERCOMUNICADOR===
   // Activa el Intercomunicador enviando el frame [0xAA, 0x14, 0x12, 0x44, 0x32, 0xD9, 0xFF] por BLE y muestra confirmación en consola.
   void activateInter() {
-    // Enviar el protocolo para activar Intercom
-    List<int> frame = [0xAA, 0x14, 0x12, 0x44, 0x32, 0xD9, 0xFF];
-    sendCommand(frame);
     debugPrint("✅ Intercom activado.");
-    requestSystemStatus();
   } //FIN activateInter
 
   ///===HORN===
@@ -370,7 +450,6 @@ class ControlController extends ChangeNotifier {
           toStream: controller.sink,
         );
 
-
         debugPrint("🎤 Transmisión de audio en tiempo real INICIADA");
       }
     } catch (e) {
@@ -393,11 +472,11 @@ class ControlController extends ChangeNotifier {
   Future<void> _connectClassicIfRemembered(String mac) async {
     try {
       final bondedDevices =
-      await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
+          await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
 
       final target = bondedDevices.firstWhere(
-            (d) =>
-        d.address == mac &&
+        (d) =>
+            d.address == mac &&
             (d.name == 'BT_PWAudio' || d.name == 'BT_PWData'),
         orElse: () => throw Exception("⚠️ Dispositivo Classic no encontrado"),
       );
@@ -410,36 +489,6 @@ class ControlController extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint("❌ Error al conectar a Classic recordado: $e");
-    }
-  }
-
-
-  Future<void> _connectClassicFromBonded(String bleMac) async {
-    debugPrint("🔍 Buscando emparejado: $bleMac con nombre válido...");
-
-    try {
-      List<btClassic.BluetoothDevice> bondedDevices =
-          await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
-
-      final device = bondedDevices.firstWhere(
-        (d) =>
-            d.address == bleMac &&
-            (d.name == 'BT_PWAudio' || d.name == 'BT_PWData'),
-        orElse: () => throw Exception("Dispositivo emparejado no encontrado"),
-      );
-
-      if (classicConnection != null && classicConnection!.isConnected) {
-        debugPrint('✅ Classic ya conectado.');
-        return;
-      }
-
-      classicConnection = await btClassic.BluetoothConnection.toAddress(
-        device.address,
-      );
-
-      debugPrint('✅ Conectado a ${device.name} (Classic)');
-    } catch (e) {
-      debugPrint("❌ Error al conectar Classic desde emparejados: $e");
     }
   }
 
@@ -456,89 +505,6 @@ class ControlController extends ChangeNotifier {
       return false;
     }
   } //FIN _requestMicrophonePermission
-
-  // Inicia la grabación de audio si no está activa, abre el recorder de Flutter Sound, crea un archivo temporal 'audio_ptt.aac' y graba en formato AAC ADTS.
-  Future<void> _startMicrophone() async {
-    try {
-      if (!_recorder.isRecording) {
-        await _recorder.openRecorder();
-
-        final controller = StreamController<Uint8List>();
-
-        controller.stream.listen((chunk) {
-          debugPrint("🔊 Chunk de ${chunk.length} bytes");
-          if (classicConnection?.isConnected == true) {
-            classicConnection!.output.add(chunk);
-            classicConnection!.output.allSent;
-          }
-        });
-
-
-        await _recorder.startRecorder(
-          codec: Codec.pcm16, // Ideal para transmisión cruda
-          numChannels: 1, // Mono
-          sampleRate: 8000, // Compatible con Classic BT
-          toStream: controller.sink,
-        );
-
-        debugPrint("🎤 Micrófono activado y transmitiendo por Classic");
-      }
-    } catch (e) {
-      debugPrint("❌ Error al iniciar micrófono en vivo: $e");
-    }
-  }
-
-  // Detiene la grabacion si esta activa, cierra el recorder y muestra un mensaje en la consola.
-  Future<void> _stopMicrophone() async {
-    try {
-      if (_recorder.isRecording) {
-        await _recorder.stopRecorder();
-        await _recorder.closeRecorder();
-        debugPrint("⛔ Micrófono detenido correctamente.");
-      }
-    } catch (e) {
-      debugPrint("❌ Error al detener micrófono: $e");
-    }
-  }
-
-  // Conecta el Bluetooth Classic a una MAC especifica si no esta ya conectado y la direccion ya no es valida
-  Future<void> _activateBluetoothClassic(String bleMac) async {
-    debugPrint(
-      "🔍 Buscando dispositivo Classic emparejado con MAC: $bleMac...",
-    );
-
-    try {
-      // 1. Obtener lista de dispositivos emparejados
-      List<btClassic.BluetoothDevice> bondedDevices =
-          await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
-
-      // 2. Buscar dispositivo con misma MAC y nombre esperado
-      final matchedDevice = bondedDevices.firstWhere(
-        (device) =>
-            device.address == bleMac &&
-            (device.name == 'BT_PWAudio' || device.name == 'BT_PWData'),
-        orElse:
-            () =>
-                throw Exception(
-                  "No se encontró dispositivo emparejado que coincida.",
-                ),
-      );
-
-      // 3. Verifica si ya está conectado
-      if (classicConnection != null && classicConnection!.isConnected) {
-        debugPrint('✅ Classic ya conectado.');
-        return;
-      }
-
-      // 4. Conectar directamente
-      classicConnection = await btClassic.BluetoothConnection.toAddress(
-        matchedDevice.address,
-      );
-      debugPrint('✅ Conectado a ${matchedDevice.name} en modo Classic.');
-    } catch (e) {
-      debugPrint("❌ Error al conectar Classic: $e");
-    }
-  }
 
   // Cierra la conexión Bluetooth Classic si está activa y restablece classicConnection a null.
   Future<void> _deactivateBluetoothClassic() async {
@@ -607,12 +573,12 @@ class ControlController extends ChangeNotifier {
   }
 
   /// ===Desconectar Dispositivo===
-  void disconnectDevice() async {
+  Future<void> disconnectDevice() async {
     if (connectedDevice != null) {
       await connectedDevice!.disconnect();
-      debugPrint("🔴 Dispositivo desconectado.");
       connectedDevice = null;
     }
+    isBleConnected.value = false;
   }
 
   void listenForResponses(BluetoothCharacteristic characteristic) {
@@ -700,5 +666,93 @@ class ControlController extends ChangeNotifier {
     ]; // <- cámbiala si tenés otra
     await sendCommand(frame); // Usa tu función real para enviar por BLE
     print("📡 Comando enviado por BLE para activar BT_PwAudio.");
+  }
+
+  Future<bool> conectarManualBLE(BuildContext context) async {
+    ble.BluetoothDevice? device;
+
+    try {
+      debugPrint("🔵 Iniciando conexión manual BLE...");
+
+      // 1. Comprueba dispositivos ya conectados
+      final connected = await ble.FlutterBluePlus.connectedDevices;
+      try {
+        device = connected.firstWhere(
+          (d) => d.platformName.toLowerCase().contains('btpw'),
+        );
+        debugPrint("✅ Dispositivo Pw ya conectado: ${device.platformName}");
+      } catch (_) {
+        // 2. Si no hay ninguno, escanea durante 5s para encontrarlo
+        debugPrint("🛜 Escaneando BLE en busca de Pw...");
+        final completer = Completer<ble.BluetoothDevice>();
+        final sub = ble.FlutterBluePlus.scanResults.listen((results) {
+          for (var r in results) {
+            if (r.device.platformName.toLowerCase().contains('btpw')) {
+              completer.complete(r.device);
+              break;
+            }
+          }
+        });
+
+        await ble.FlutterBluePlus.startScan(
+          timeout: const Duration(seconds: 5),
+        );
+        try {
+          device = await completer.future.timeout(const Duration(seconds: 5));
+          debugPrint("🔍 Pw encontrado: ${device.platformName}");
+        } catch (_) {
+          debugPrint("❌ No se encontró Pw tras escaneo.");
+        }
+        await ble.FlutterBluePlus.stopScan();
+        await sub.cancel();
+      }
+
+      // 3. Si lo encontramos, nos conectamos
+      if (device != null) {
+        debugPrint("🔌 Conectando a ${device.platformName}...");
+        await device.connect(timeout: const Duration(seconds: 8));
+        debugPrint("✅ Conexión BLE exitosa.");
+
+        // 4. Descubrir servicios y buscar característica ff01
+        await device.discoverServices();
+        ble.BluetoothCharacteristic? writeChar;
+        for (var svc in device.servicesList) {
+          for (var ch in svc.characteristics) {
+            if (ch.uuid.toString().toLowerCase().contains('ff01')) {
+              writeChar = ch;
+              break;
+            }
+          }
+          if (writeChar != null) break;
+        }
+
+        if (writeChar == null) {
+          debugPrint("❌ No se encontró característica ff01.");
+          Navigator.pushReplacementNamed(context, 'splash_denegate');
+          return false;
+        }
+
+        // 5. Configurar este controller
+        setDevice(device);
+        setWriteCharacteristic(writeChar);
+
+        // 6. Mostrar splash de confirmación
+        Navigator.pushReplacementNamed(
+          context,
+          'splash_confirmacion',
+          arguments: {'device': device, 'controller': this},
+        );
+        return true;
+      } else {
+        Navigator.pushReplacementNamed(context, 'splash_denegate');
+        return false;
+      }
+    } catch (e) {
+      debugPrint("❌ Error en conectarManualBLE: $e");
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, 'splash_denegate');
+      }
+      return false;
+    }
   }
 } //FIN ControlController

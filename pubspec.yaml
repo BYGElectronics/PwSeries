@@ -12,7 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.8 #
   flutter_launcher_icons: ^0.14.3
   flutter_bluetooth_serial: ^0.4.0
 
@@ -31,10 +31,7 @@ dependencies:
   flutter_sound: ^9.25.4
   path_provider: ^2.1.5
   get: ^4.7.2
-
-
-
-
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -45,15 +42,27 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo.png"
-  adaptive_icon_foreground: "assets/images/logo.png"
-  adaptive_icon_background: "assets/images/logo.png"
+  image_path: "assets/img/logos/logo.png"
+  adaptive_icon_foreground: "assets/img/logos/logo.png"
+  adaptive_icon_background: "assets/img/logos/logo.png"
   min_sdk_android: 21
-
-
 
 flutter:
   uses-material-design: true
+
+  fonts:
+    - family: PWSeriesFont
+      fonts:
+        - asset: assets/fonts/PwSeries.ttf
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto.ttf
+    - family: Roboto-bold
+      fonts:
+        - asset: assets/fonts/Roboto-Bold.ttf
+
+
+
 
   assets:
     - assets/images/
@@ -65,4 +74,11 @@ flutter:
     - assets/images/Botones/Frances/
     - assets/images/Botones/Portugues/
     - assets/images/Estados/
-
+    - assets/img/
+    - assets/img/botones/
+    - assets/img/header/
+    - assets/img/iconos/
+    - assets/img/logos/
+    - assets/img/splashScreen/
+    - assets/img/teclado/
+    - assets/img/tecladoPin/
