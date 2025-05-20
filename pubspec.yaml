@@ -26,12 +26,12 @@ dependencies:
   provider: ^6.0.5
 
   shared_preferences: ^2.5.0
-  audio_streamer:
-    path: audio_streamer
-  flutter_sound: ^9.25.4
+  flutter_sound: ^9.2.13
   path_provider: ^2.1.5
   get: ^4.7.2
   url_launcher: ^6.3.1
+
+
 
 dev_dependencies:
   flutter_test:

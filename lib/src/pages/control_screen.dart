@@ -13,6 +13,7 @@ class ControlScreen extends StatefulWidget {
   final BluetoothDevice? connectedDevice;
   final ControlController? controller;
 
+
   const ControlScreen({
     Key? key,
     this.connectedDevice,
@@ -30,7 +31,11 @@ class _ControlScreenState extends State<ControlScreen> {
   @override
   void initState() {
     super.initState();
+
     _controller = widget.controller ?? ControlController();
+
+
+
 
     if (widget.connectedDevice != null) {
       // 1) Configuramos el dispositivo BLE para usarlo

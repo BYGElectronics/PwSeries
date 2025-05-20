@@ -1,3 +1,5 @@
+// lib/src/pages/splash_screen.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
@@ -24,13 +26,25 @@ class _SplashScreenState extends State<SplashScreen> {
     // 1️⃣ Pedimos permisos de Bluetooth y ubicación
     await _solicitarPermisos();
 
-    // 2️⃣ Esperamos unos segundos para mostrar el splash
+    // 2️⃣ Nos aseguramos de que el Bluetooth clásico esté encendido
+    final classicState = await FlutterBluetoothSerial.instance.state;
+    if (classicState != BluetoothState.STATE_ON) {
+      await FlutterBluetoothSerial.instance.requestEnable();
+    }
+
+    // 3️⃣ Nos aseguramos de que el Bluetooth LE esté encendido
+    final isBleOn = await ble.FlutterBluePlus.isOn;
+    if (!isBleOn) {
+      await ble.FlutterBluePlus.turnOn();
+    }
+
+    // 4️⃣ Pausa breve para mostrar el splash
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    // 3️⃣ Revisamos dispositivos Classic emparejados
+    // 5️⃣ Revisamos dispositivos Classic emparejados
     List<BluetoothDevice> bonded =
-        await FlutterBluetoothSerial.instance.getBondedDevices();
+    await FlutterBluetoothSerial.instance.getBondedDevices();
     BluetoothDevice? paired;
     for (var d in bonded) {
       if (d.name?.toLowerCase().contains('btpw') ?? false) {
@@ -40,12 +54,12 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     if (paired == null) {
-      // ❌ No hay BTPW emparejado, vamos a configuración inicial
+      // ❌ No hay dispositivo Pw emparejado: vamos a home/configuración
       Navigator.pushReplacementNamed(context, 'home');
       return;
     }
 
-    // 4️⃣ Hay un BTPW emparejado: intentamos conexión BLE (si no sale, igual vamos a control)
+    // 6️⃣ Hay un Pw emparejado: intentamos conexión BLE
     await _conectarAutomaticamenteBLE(paired.address);
   }
 
@@ -62,8 +76,9 @@ class _SplashScreenState extends State<SplashScreen> {
     ble.BluetoothDevice? bleDevice;
     final completer = Completer<ble.BluetoothDevice>();
 
-    // 1️⃣ Escaneo BLE buscando la MAC
-    final subscription = ble.FlutterBluePlus.scanResults.listen((results) {
+    // 1️⃣ Escaneo BLE buscando la dirección MAC
+    final subscription =
+    ble.FlutterBluePlus.scanResults.listen((results) {
       for (var result in results) {
         if (result.device.remoteId.str == macAddress) {
           completer.complete(result.device);
@@ -73,22 +88,26 @@ class _SplashScreenState extends State<SplashScreen> {
     });
 
     try {
-      await ble.FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
-      bleDevice = await completer.future.timeout(const Duration(seconds: 5));
+      await ble.FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: 5),
+      );
+      bleDevice = await completer.future
+          .timeout(const Duration(seconds: 5));
     } catch (_) {
       bleDevice = null;
+    } finally {
+      await ble.FlutterBluePlus.stopScan();
+      await subscription.cancel();
     }
-
-    await ble.FlutterBluePlus.stopScan();
-    await subscription.cancel();
 
     if (bleDevice != null) {
       try {
         // 2️⃣ Conexión BLE
         await bleDevice.connect(timeout: const Duration(seconds: 5));
+        // 3️⃣ Descubrimos servicios
         await bleDevice.discoverServices();
 
-        // 3️⃣ Buscamos la característica 'ff01'
+        // 4️⃣ Buscamos la característica 'ff01'
         ble.BluetoothCharacteristic? writeChar;
         for (var svc in bleDevice.servicesList) {
           for (var ch in svc.characteristics) {
@@ -101,18 +120,21 @@ class _SplashScreenState extends State<SplashScreen> {
         }
 
         if (writeChar != null) {
-          // 4️⃣ Configuramos el controlador global
-          final ctrl = Provider.of<ControlController>(context, listen: false);
+          // 5️⃣ Configuramos el controlador con BLE
+          final ctrl =
+          Provider.of<ControlController>(context, listen: false);
           ctrl.setDevice(bleDevice);
           ctrl.setWriteCharacteristic(writeChar);
-          // (Opcional) aquí podrías iniciar un monitoreo periódico dentro de ControlController
+          // Opcional: iniciar monitoreo de batería aquí
+          ctrl.startBatteryStatusMonitoring();
+          ctrl.requestSystemStatus();
         }
       } catch (e) {
         debugPrint("⚠️ Error en conexión BLE automática: $e");
       }
     }
 
-    // 5️⃣ Finalmente, navegamos a la pantalla de control (con BLE conectado o no)
+    // 6️⃣ Navegamos a la pantalla de control (con o sin BLE)
     Navigator.pushReplacementNamed(
       context,
       '/control',

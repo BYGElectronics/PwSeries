@@ -1,3 +1,5 @@
+// lib/widgets/tecladoPwWidget.dart
+
 import 'package:flutter/material.dart';
 import '../src/Controller/control_controller.dart';
 
@@ -36,35 +38,32 @@ class TecladoPW extends StatelessWidget {
                   height: fondoHeight * 0.35,
                 ),
 
-                // Sirena sigue siendo un tap simple
+                // Sirena tap simple
                 _buildSimpleButton(
-                  asset:
-                      conectado
-                          ? "assets/img/teclado/sirenaOn.png"
-                          : "assets/img/teclado/sirenaOff.png",
-                  onTap:
-                      () =>
-                          conectado
-                              ? controller.activateSiren()
-                              : _showNoConnectionAlert(context),
+                  asset: conectado
+                      ? "assets/img/teclado/sirenaOn.png"
+                      : "assets/img/teclado/sirenaOff.png",
+                  onTap: conectado
+                      ? controller.activateSiren
+                      : () => _showNoConnectionAlert(context),
                   width: fondoWidth * 0.40,
-                  height: fondoHeight * 0.4,
+                  height: fondoHeight * 0.40,
                 ),
 
                 // Intercomunicador tap simple
                 _buildSimpleButton(
                   asset: "assets/img/teclado/intercomunicador.png",
-                  onTap:
-                      () =>
-                          conectado
-                              ? controller.activateInter()
-                              : _showNoConnectionAlert(context),
+                  onTap: conectado
+                      ? controller.activateInter
+                      : () => _showNoConnectionAlert(context),
                   width: fondoWidth * 0.25,
                   height: fondoHeight * 0.35,
                 ),
               ],
             ),
+
             const SizedBox(height: 5),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -81,17 +80,14 @@ class TecladoPW extends StatelessWidget {
 
                 // Auxiliar tap simple
                 _buildSimpleButton(
-                  asset:
-                      conectado
-                          ? "assets/img/teclado/auxOn.png"
-                          : "assets/img/teclado/auxOff.png",
-                  onTap:
-                      () =>
-                          conectado
-                              ? controller.activateAux()
-                              : _showNoConnectionAlert(context),
+                  asset: conectado
+                      ? "assets/img/teclado/auxOn.png"
+                      : "assets/img/teclado/auxOff.png",
+                  onTap: conectado
+                      ? controller.activateAux
+                      : () => _showNoConnectionAlert(context),
                   width: fondoWidth * 0.35,
-                  height: fondoHeight * 0.3,
+                  height: fondoHeight * 0.30,
                 ),
 
                 // PTT: mantener para activar, soltar para desactivar
@@ -118,15 +114,16 @@ class TecladoPW extends StatelessWidget {
     required VoidCallback onTap,
     double width = 100,
     double height = 70,
-  }) => GestureDetector(
-    onTap: onTap,
-    child: Image.asset(
-      asset,
-      width: width,
-      height: height,
-      fit: BoxFit.contain,
-    ),
-  );
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Image.asset(
+          asset,
+          width: width,
+          height: height,
+          fit: BoxFit.contain,
+        ),
+      );
 
   /// Botón “mantener apretado”: onTapDown = onPress, onTapUp/onTapCancel = onRelease
   Widget _buildPressHoldButton({
