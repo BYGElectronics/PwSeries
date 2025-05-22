@@ -25,11 +25,12 @@ class _IdiomaScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<ConfiguracionBluetoothController>(context);
+    final theme = Theme.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       drawer: const AppDrawer(),
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           const Positioned(top: 0, left: 0, right: 0, child: HeaderMenuWidget()),
@@ -44,91 +45,72 @@ class _IdiomaScreen extends StatelessWidget {
                 Center(
                   child: Text(
                     'Idioma',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'PWSeriesFont',
                       fontSize: 25,
                       fontWeight: FontWeight.bold,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
-                const Divider(thickness: 2, color: Colors.black),
+                Divider(thickness: 2, color: theme.dividerColor),
                 const SizedBox(height: 15),
 
-                ListTile(
-                  leading: Image.asset(
-                    'assets/img/iconos/espanol.png',
-                    width: 50,
-                    height: 50,
-                  ),
-                  title: const Text(
-                    'Español',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    Navigator.pushNamed(context, 'configAvanzada');
-                  },
+                _idiomaTile(
+                  context,
+                  image: 'assets/img/iconos/espanol.png',
+                  label: 'Español',
                 ),
-
                 const SizedBox(height: 20),
 
-                ListTile(
-                  leading: Image.asset(
-                    'assets/img/iconos/frances.png',
-                    width: 50,
-                    height: 50,
-                  ),
-                  title: const Text(
-                    'Frances',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    Navigator.pushNamed(context, 'configAvanzada');
-                  },
+                _idiomaTile(
+                  context,
+                  image: 'assets/img/iconos/frances.png',
+                  label: 'Francés',
                 ),
-
                 const SizedBox(height: 20),
 
-                ListTile(
-                  leading: Image.asset(
-                    'assets/img/iconos/ingles.png',
-                    width: 50,
-                    height: 50,
-                  ),
-                  title: const Text(
-                    'Inglés',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    Navigator.pushNamed(context, 'configAvanzada');
-                  },
+                _idiomaTile(
+                  context,
+                  image: 'assets/img/iconos/ingles.png',
+                  label: 'Inglés',
                 ),
-
                 const SizedBox(height: 20),
 
-                ListTile(
-                  leading: Image.asset(
-                    'assets/img/iconos/portugues.png',
-                    width: 50,
-                    height: 50,
-                  ),
-                  title: const Text(
-                    'Portugues',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    Navigator.pushNamed(context, 'configAvanzada');
-                  },
+                _idiomaTile(
+                  context,
+                  image: 'assets/img/iconos/portugues.png',
+                  label: 'Portugués',
                 ),
-
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _idiomaTile(BuildContext context, {required String image, required String label}) {
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: Image.asset(
+        image,
+        width: 50,
+        height: 50,
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontSize: 21,
+          fontFamily: 'Roboto-bold',
+          fontWeight: FontWeight.bold,
+          color: theme.textTheme.bodyLarge?.color,
+        ),
+      ),
+      onTap: () {
+        Navigator.of(context).pop();
+        Navigator.pushNamed(context, 'configAvanzada');
+      },
     );
   }
 }

@@ -58,6 +58,7 @@ class ControlController extends ChangeNotifier {
   String? _bondedMac; // Dirección MAC emparejada
   Timer? _bondMonitorTimer; // Timer que vigila el vínculo Classic
 
+
   // ────────────────────────────────────────────────────────────────
   // 🔋 Batería
   // ────────────────────────────────────────────────────────────────
@@ -128,7 +129,7 @@ class ControlController extends ChangeNotifier {
   void startBondMonitoring() {
     _bondMonitorTimer?.cancel(); // Detiene cualquier timer anterior
     _bondMonitorTimer = Timer.periodic(
-      const Duration(seconds: 5), // Verifica cada 5 segundos
+      const Duration(seconds: 2), // Verifica cada 5 segundos
       (_) => _checkStillBonded(), // Ejecuta la función privada
     );
   }
@@ -494,11 +495,50 @@ class ControlController extends ChangeNotifier {
     }
   }
 
+  Future<void> conectarClassicSiRecuerda(String mac) async {
+    final dispositivoEmparejado = await buscarEnEmparejados(mac);
+
+    if (dispositivoEmparejado == null) {
+      debugPrint('❌ No se encontró el dispositivo emparejado con MAC $mac');
+      return;
+    }
+
+    classicConnection = await btClassic.BluetoothConnection.toAddress(mac);
+    connectedClassicDevice = dispositivoEmparejado;
+  }
+
+  Future<btClassic.BluetoothDevice?> buscarEnEmparejados(String mac) async {
+    try {
+      final bondedDevices = await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
+      return bondedDevices.firstWhere((device) => device.address == mac);
+    } catch (_) {
+      return null; // No se encontró
+    }
+  }
+
+
   final StreamController<Uint8List> _audioStreamController =
       StreamController<Uint8List>();
 
   Future<void> togglePTT() async {
     const pttFrame = <int>[0xAA, 0x14, 0x11, 0x44, 0x32, 0x29, 0xFF];
+
+/*
+    if (classicConnection == null || !(classicConnection?.isConnected ?? false)) {
+      debugPrint("❗ Classic no conectado");
+      return;
+    }
+
+    final deviceName = connectedClassicDevice?.name?.toLowerCase().trim() ?? '';
+    debugPrint("🔍 Conectado a Classic con nombre: '$deviceName'");
+
+    if (!(deviceName.contains('btpw') || deviceName.contains('pw'))) {
+      debugPrint("❗ Conectado a Classic, pero no es BTPW");
+      return;
+    }
+
+
+*/
 
     if (!await Permission.microphone.request().isGranted) return;
 
@@ -553,7 +593,6 @@ class ControlController extends ChangeNotifier {
 
     notifyListeners();
   }
-
 
   @override
   void dispose() {

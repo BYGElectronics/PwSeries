@@ -1,4 +1,3 @@
-// lib/src/pages/splashScreenConfirmation.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -42,12 +41,11 @@ class _SplashConexionScreenState extends State<SplashConexionScreen>
         context,
         '/control',
         arguments: {
-          'device':     widget.device,
+          'device': widget.device,
           'controller': widget.controller,
         },
       );
     });
-
   }
 
   @override
@@ -58,8 +56,10 @@ class _SplashConexionScreenState extends State<SplashConexionScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: ScaleTransition(
           scale: _scaleAnimation,
@@ -75,13 +75,13 @@ class _SplashConexionScreenState extends State<SplashConexionScreen>
                 const Icon(Icons.error, color: Colors.red, size: 100),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Conexión Exitosa',
                 style: TextStyle(
                   fontSize: 27,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'PWSeriesFont',
-                  color: Colors.black,
+                  color: theme.textTheme.bodyLarge?.color, // dinámico
                 ),
               ),
             ],

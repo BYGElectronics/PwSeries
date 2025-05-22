@@ -6,6 +6,7 @@ import '../../widgets/drawerMenuWidget.dart';
 import '../../widgets/header_menu_widget.dart';
 import '../../widgets/header_widget.dart';
 import '../Controller/ConfiguracionBluetoothController.dart';
+import 'package:pw/src/Controller/theme_controller.dart';
 
 class ThemeScreen extends StatelessWidget {
   const ThemeScreen({Key? key}) : super(key: key);
@@ -25,11 +26,12 @@ class _ThemeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<ConfiguracionBluetoothController>(context);
+    final themeController = Provider.of<ThemeController>(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       drawer: const AppDrawer(),
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           const Positioned(top: 0, left: 0, right: 0, child: HeaderMenuWidget()),
@@ -44,14 +46,15 @@ class _ThemeScreen extends StatelessWidget {
                 Center(
                   child: Text(
                     'Tema App Pw',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'PWSeriesFont',
                       fontSize: 25,
                       fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
-                const Divider(thickness: 2, color: Colors.black),
+                Divider(thickness: 2, color: Theme.of(context).dividerColor),
                 const SizedBox(height: 15),
 
                 ListTile(
@@ -61,10 +64,11 @@ class _ThemeScreen extends StatelessWidget {
                     height: 50,
                   ),
                   title: const Text(
-                    'Modo oscuro',
+                    'Modo Oscuro',
                     style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
                   ),
                   onTap: () {
+                    themeController.setThemeMode(ThemeMode.dark);
                     Navigator.of(context).pop();
                     Navigator.pushNamed(context, 'configAvanzada');
                   },
@@ -83,6 +87,7 @@ class _ThemeScreen extends StatelessWidget {
                     style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
                   ),
                   onTap: () {
+                    themeController.setThemeMode(ThemeMode.light);
                     Navigator.of(context).pop();
                     Navigator.pushNamed(context, 'configAvanzada');
                   },
@@ -101,12 +106,11 @@ class _ThemeScreen extends StatelessWidget {
                     style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
                   ),
                   onTap: () {
+                    themeController.setThemeMode(ThemeMode.system);
                     Navigator.of(context).pop();
                     Navigator.pushNamed(context, 'configAvanzada');
                   },
                 ),
-
-
               ],
             ),
           ),

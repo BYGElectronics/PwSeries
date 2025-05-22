@@ -1,0 +1,2 @@
+/Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/.cxx/RelWithDebInfo/3v556v15/x86_64/CMakeFiles/edit_cache.dir
+/Users/mac/Desktop/2025/Software/PW SERIES/pw/android/app/.cxx/RelWithDebInfo/3v556v15/x86_64/CMakeFiles/rebuild_cache.dir

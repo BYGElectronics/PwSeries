@@ -1,5 +1,3 @@
-// lib/src/pages/config_teclado_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,9 +6,7 @@ import '../../widgets/header_menu_widget.dart';
 import '../Controller/control_controller.dart';
 
 class ConfigTecladoScreen extends StatelessWidget {
-  const ConfigTecladoScreen({Key? key, required this.controller})
-      : super(key: key);
-
+  const ConfigTecladoScreen({Key? key, required this.controller}) : super(key: key);
   final ControlController controller;
 
   @override
@@ -35,13 +31,12 @@ class _ConfigTecladoView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Provider.of<ControlController>(context);
     final screenHeight = MediaQuery.of(context).size.height;
-
-    // Comprueba si hay conexión BLE establecida
+    final theme = Theme.of(context);
     final bool isConnected = controller.connectedDevice != null;
 
     return Scaffold(
       drawer: const AppDrawer(),
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           const Positioned(
@@ -54,89 +49,65 @@ class _ConfigTecladoView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Center(
+                Center(
                   child: Text(
                     'Configuración Teclado',
                     style: TextStyle(
                       fontFamily: 'PWSeriesFont',
                       fontSize: 25,
                       fontWeight: FontWeight.bold,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
-                const Divider(thickness: 2, color: Colors.black),
+                Divider(thickness: 2, color: theme.dividerColor),
                 const SizedBox(height: 15),
 
-                // Autoajuste PA
-                ListTile(
-                  leading: Image.asset('assets/img/botones/PA.png', width: 80, height: 80),
-                  title: const Text(
-                    'Autoajuste PA',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold'),
-                  ),
+                _customTile(
+                  context,
                   enabled: isConnected,
+                  image: 'assets/img/botones/PA.png',
+                  label: 'Autoajuste PA',
                   onTap: () {
-                    if (!isConnected) {
-                      _showMessage(context, '❗ Dispositivo no conectado');
-                      return;
-                    }
                     controller.autoAdjustPA();
                     _showMessage(context, '⏳ Autoajuste PA iniciado');
                   },
                 ),
+
                 const SizedBox(height: 20),
 
-                // Sincronización luces y sirenas
-                ListTile(
-                  leading: Image.asset('assets/img/botones/sincronizacion.png', width: 80, height: 80),
-                  title: const Text(
-                    'Sincronizar Luces y Sirenas',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold'),
-                  ),
+                _customTile(
+                  context,
                   enabled: isConnected,
+                  image: 'assets/img/botones/sincronizacion.png',
+                  label: 'Sincronizar Luces y Sirenas',
                   onTap: () {
-                    if (!isConnected) {
-                      _showMessage(context, '❗ Dispositivo no conectado');
-                      return;
-                    }
                     controller.syncLightsWithSiren();
                     _showMessage(context, '🔄 Sincronización iniciada');
                   },
                 ),
+
                 const SizedBox(height: 20),
 
-                // Cambio de tono Horn
-                ListTile(
-                  leading: Image.asset('assets/img/botones/cambioHorn.png', width: 80, height: 80),
-                  title: const Text(
-                    'Cambio Horn',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold'),
-                  ),
+                _customTile(
+                  context,
                   enabled: isConnected,
+                  image: 'assets/img/botones/cambioHorn.png',
+                  label: 'Cambio Horn',
                   onTap: () {
-                    if (!isConnected) {
-                      _showMessage(context, '❗ Dispositivo no conectado');
-                      return;
-                    }
                     controller.changeHornTone();
                     _showMessage(context, '🎺 Tono Horn cambiado');
                   },
                 ),
+
                 const SizedBox(height: 20),
 
-                // Auxiliar / Luces
-                ListTile(
-                  leading: Image.asset('assets/img/botones/luces-aux.png', width: 80, height: 80),
-                  title: const Text(
-                    'Auxiliar / Luces',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold'),
-                  ),
+                _customTile(
+                  context,
                   enabled: isConnected,
+                  image: 'assets/img/botones/luces-aux.png',
+                  label: 'Auxiliar / Luces',
                   onTap: () {
-                    if (!isConnected) {
-                      _showMessage(context, '❗ Dispositivo no conectado');
-                      return;
-                    }
                     controller.switchAuxLights();
                     _showMessage(context, '💡 Modo Aux/Luces cambiado');
                   },
@@ -146,6 +117,35 @@ class _ConfigTecladoView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _customTile(
+      BuildContext context, {
+        required bool enabled,
+        required String image,
+        required String label,
+        required VoidCallback onTap,
+      }) {
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: Image.asset(image, width: 80, height: 80),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontSize: 21,
+          fontFamily: 'Roboto-bold',
+          color: theme.textTheme.bodyLarge?.color,
+        ),
+      ),
+      enabled: enabled,
+      onTap: () {
+        if (!enabled) {
+          _showMessage(context, '❗ Dispositivo no conectado');
+        } else {
+          onTap();
+        }
+      },
     );
   }
 }

@@ -26,6 +26,7 @@ class _SplashConexionDenegateScreenState extends State<SplashConexionDenegateScr
     );
 
     Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/control');
     });
   }
@@ -38,17 +39,18 @@ class _SplashConexionDenegateScreenState extends State<SplashConexionDenegateScr
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white, // Fondo negro (puedes cambiarlo)
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 🖼️ Imagen en lugar de ícono
               Image.asset(
-                "assets/img/tecladoPin/botonCancel.png", // <- Aquí cambia el path de tu imagen
+                "assets/img/tecladoPin/botonCancel.png",
                 width: 200,
                 height: 200,
                 fit: BoxFit.contain,
@@ -57,13 +59,13 @@ class _SplashConexionDenegateScreenState extends State<SplashConexionDenegateScr
                 },
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Conexión Fallida',
                 style: TextStyle(
                   fontSize: 27,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'PWSeriesFont',
-                  color: Colors.black,
+                  color: theme.textTheme.bodyLarge?.color,
                 ),
               ),
             ],

@@ -25,11 +25,12 @@ class _ConfigAvanzadaScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<ConfiguracionBluetoothController>(context);
+    final theme = Theme.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       drawer: const AppDrawer(),
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           const Positioned(top: 0, left: 0, right: 0, child: HeaderMenuWidget()),
@@ -44,14 +45,15 @@ class _ConfigAvanzadaScreen extends StatelessWidget {
                 Center(
                   child: Text(
                     'Configuración Avanzada',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'PWSeriesFont',
                       fontSize: 25,
                       fontWeight: FontWeight.bold,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
-                const Divider(thickness: 2, color: Colors.black),
+                Divider(thickness: 2, color: theme.dividerColor),
                 const SizedBox(height: 15),
 
                 ListTile(
@@ -60,32 +62,41 @@ class _ConfigAvanzadaScreen extends StatelessWidget {
                     width: 50,
                     height: 50,
                   ),
-                  title: const Text(
+                  title: Text(
                     'Configuración Teclado',
-                    style: TextStyle(fontSize: 21, fontFamily: 'PWSeriesFont'),
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontFamily: 'PWSeriesFont',
+                      color: theme.textTheme.bodyLarge?.color,
+                    ),
                   ),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.pushNamed(context, 'configTeclado');
                   },
                 ),
+
                 const SizedBox(height: 20),
+
                 ListTile(
                   leading: Image.asset(
                     'assets/img/iconos/iconoBtConexion.png',
                     width: 50,
                     height: 50,
                   ),
-                  title: const Text(
+                  title: Text(
                     'Conexión Pw',
-                    style: TextStyle(fontSize: 21, fontFamily: 'PWSeriesFont'),
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontFamily: 'PWSeriesFont',
+                      color: theme.textTheme.bodyLarge?.color,
+                    ),
                   ),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.pushNamed(context, 'conexionPw');
                   },
                 ),
-
               ],
             ),
           ),

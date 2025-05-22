@@ -1,9 +1,8 @@
-// lib/src/pages/conexion_pw_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../widgets/drawerMenuWidget.dart';    // define AppDrawer()
-import '../../widgets/header_menu_widget.dart';  // botón hamburguesa
+import '../../widgets/drawerMenuWidget.dart';
+import '../../widgets/header_menu_widget.dart';
 import '../Controller/ConfiguracionBluetoothController.dart';
 
 class ConexionpwScreen extends StatelessWidget {
@@ -22,27 +21,30 @@ class _ConexionpwScreen extends StatelessWidget {
   const _ConexionpwScreen({Key? key}) : super(key: key);
 
   Widget _actionButton({
+    required BuildContext context,
     required String text,
     required VoidCallback onPressed,
     required double width,
   }) {
+    final theme = Theme.of(context);
+
     return SizedBox(
       width: width,
       height: 48,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1976D2),
+          backgroundColor: theme.colorScheme.primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6),
           ),
         ),
         child: Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'PWSeriesFont',
             fontSize: 18,
-            color: Colors.white,
+            color: theme.colorScheme.onPrimary, // texto blanco o negro según fondo
           ),
         ),
       ),
@@ -53,21 +55,19 @@ class _ConexionpwScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenH = MediaQuery.of(context).size.height;
     final screenW = MediaQuery.of(context).size.width;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // 1) Header con hamburguesa
           const Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: HeaderMenuWidget(),
           ),
-
-          // 2) Contenido
           Positioned(
             top: screenH * 0.18,
             left: 27,
@@ -76,79 +76,74 @@ class _ConexionpwScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Título centrado
                 Center(
                   child: Text(
                     'Conexión PW',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'PWSeriesFont',
                       fontSize: 25,
                       fontWeight: FontWeight.bold,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
-
-                // Línea negra bajo el título
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Divider(thickness: 2, color: Colors.black),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Divider(
+                    thickness: 2,
+                    color: theme.dividerColor,
+                  ),
                 ),
-
                 const SizedBox(height: 15),
-
-                // Fila con nombre/address y botones
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Izquierda: BTPW + dirección
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             'BTPW',
                             style: TextStyle(
                               fontFamily: 'PWSeriesFont',
                               fontSize: 30,
                               fontWeight: FontWeight.bold,
+                              color: theme.textTheme.bodyLarge?.color,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             'EC:64:C9:41:C3:BA',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.hintColor,
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                    // Derecha: los dos botones
                     Column(
                       children: [
                         _actionButton(
+                          context: context,
                           text: 'Olvidar PW',
                           width: screenW * 0.4,
                           onPressed: () {
-                            // tu lógica para "olvidar"
+                            // lógica olvidar
                           },
                         ),
                         const SizedBox(height: 12),
                         _actionButton(
+                          context: context,
                           text: 'Desconectar',
                           width: screenW * 0.4,
                           onPressed: () {
-                            // tu lógica para "desconectar"
+                            // lógica desconectar
                           },
                         ),
                       ],
                     ),
                   ],
                 ),
-
-                // Empuja todo hacia arriba
                 const Spacer(),
               ],
             ),

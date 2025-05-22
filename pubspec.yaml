@@ -14,7 +14,9 @@ dependencies:
 
   cupertino_icons: ^1.0.8 #
   flutter_launcher_icons: ^0.14.3
-  flutter_bluetooth_serial: ^0.4.0
+  flutter_bluetooth_serial:
+    path: lib_plugins/flutter_bluetooth_serial
+
 
 
 
