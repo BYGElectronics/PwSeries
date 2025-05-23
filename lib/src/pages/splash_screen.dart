@@ -32,13 +32,13 @@ class _SplashScreenState extends State<SplashScreen> {
       await FlutterBluetoothSerial.instance.requestEnable();
     }
 
-    // 3️⃣ Nos aseguramos de que el Bluetooth LE esté encendido
+    // 3️⃣ Nos aseguramos de9  que el Bluetooth LE esté encendido
     final isBleOn = await ble.FlutterBluePlus.isOn;
     if (!isBleOn) {
       await ble.FlutterBluePlus.turnOn();
     }
 
-    // 4️⃣ Pausa breve para mostrar el splash
+    // 4️⃣ Pausa breve para mostrar el splash0
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
