@@ -11,7 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as ble;
 import 'package:path_provider/path_provider.dart'; // Permite obtener rutas de almacenamiento del sistema (temporales, documentos, etc.)
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
-    as btClassic; // Biblioteca para manejar Bluetooth Classic (perfil serial), usada para audio por PTT.
+as btClassic; // Biblioteca para manejar Bluetooth Classic (perfil serial), usada para audio por PTT.
 import 'package:get/get.dart'; // Framework para manejo de estado, navegación y dependencias. ⚠️ Actualmente no se usa en este archivo.
 import 'dart:typed_data';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -30,6 +30,12 @@ enum BatteryLevel {
 } // Sirve para representar el estado de batería del dispositivo Bluetooth conectado
 
 class ControlController extends ChangeNotifier {
+
+  /// Estados de función T04
+  bool _hornT04Active = false;
+  bool _wailT04Active = false;
+  bool _pttT04Active  = false;
+
   // ────────────────────────────────────────────────────────────────
   // 📦 BLE - Dispositivo y características
   // ────────────────────────────────────────────────────────────────
@@ -72,13 +78,13 @@ class ControlController extends ChangeNotifier {
   // 🔊 Push-To-Talk (PTT)
   // ────────────────────────────────────────────────────────────────
   final FlutterSoundRecorder _recorder =
-      FlutterSoundRecorder(); // Recorder para PTT
+  FlutterSoundRecorder(); // Recorder para PTT
 
   StreamSubscription<Uint8List>?
   _micSub; // Subscripción al stream de audio del mic
 
   final StreamController<Uint8List> _micController =
-      StreamController<Uint8List>.broadcast(); // Controlador de audio
+  StreamController<Uint8List>.broadcast(); // Controlador de audio
 
   bool isPTTActive = false; // Estado de PTT
   bool _isRecorderInitialized = false; // Estado de inicialización del recorder
@@ -130,7 +136,7 @@ class ControlController extends ChangeNotifier {
     _bondMonitorTimer?.cancel(); // Detiene cualquier timer anterior
     _bondMonitorTimer = Timer.periodic(
       const Duration(seconds: 2), // Verifica cada 5 segundos
-      (_) => _checkStillBonded(), // Ejecuta la función privada
+          (_) => _checkStillBonded(), // Ejecuta la función privada
     );
   }
 
@@ -148,10 +154,10 @@ class ControlController extends ChangeNotifier {
     }
     try {
       final bonded =
-          await btClassic.FlutterBluetoothSerial.instance
-              .getBondedDevices(); // Lista de dispositivos emparejados
+      await btClassic.FlutterBluetoothSerial.instance
+          .getBondedDevices(); // Lista de dispositivos emparejados
       final stillPaired = bonded.any(
-        (d) => d.address == _bondedMac,
+            (d) => d.address == _bondedMac,
       ); // Verifica si sigue en la lista
       if (!stillPaired) {
         _fireSetup(); // Si ya no está, dispara el reinicio de configuración
@@ -223,8 +229,8 @@ class ControlController extends ChangeNotifier {
       return; // Si no hay dispositivo conectado, termina la función.
 
     List<BluetoothService> services =
-        await connectedDevice!
-            .discoverServices(); // Obtiene todos los servicios disponibles del dispositivo.
+    await connectedDevice!
+        .discoverServices(); // Obtiene todos los servicios disponibles del dispositivo.
 
     for (var service in services) {
       // Itera por cada servicio encontrado
@@ -292,12 +298,12 @@ class ControlController extends ChangeNotifier {
 
     // Convierte la lista de bytes [int] en una cadena hexadecimal tipo 'AA14184430F9FF'
     String asciiCommand =
-        command
-            .map(
-              (e) => e.toRadixString(16).padLeft(2, '0'),
-            ) // Cada byte → string hex con 2 dígitos
-            .join('')
-            .toUpperCase(); // En mayúsculas
+    command
+        .map(
+          (e) => e.toRadixString(16).padLeft(2, '0'),
+    ) // Cada byte → string hex con 2 dígitos
+        .join('')
+        .toUpperCase(); // En mayúsculas
 
     // Transforma el string hexadecimal en código ASCII (A → 65, F → 70, etc.)
     List<int> asciiBytes = asciiCommand.codeUnits;
@@ -337,8 +343,8 @@ class ControlController extends ChangeNotifier {
         // Procesa los 8 bits de cada byte
         if ((crc & 1) != 0) {
           crc =
-              (crc >> 1) ^
-              0xA001; // Si el bit menos significativo es 1, aplica desplazamiento y XOR con polinomio ModBus
+          (crc >> 1) ^
+          0xA001; // Si el bit menos significativo es 1, aplica desplazamiento y XOR con polinomio ModBus
         } else {
           crc >>= 1; // Si no, solo desplaza a la derecha
         }
@@ -347,7 +353,7 @@ class ControlController extends ChangeNotifier {
 
     // Reordena los bytes: devuelve el low byte primero y luego el high byte (ModBus usa little endian)
     return ((crc & 0xFF) << 8) |
-        ((crc >> 8) & 0xFF); // Combina los bytes en el orden correcto
+    ((crc >> 8) & 0xFF); // Combina los bytes en el orden correcto
   } // FIN calculateCRC
 
   /// =======================//
@@ -436,50 +442,157 @@ class ControlController extends ChangeNotifier {
     debugPrint("✅ Intercom activado."); // Solo imprime, sin comando aún
   } // FIN activateInter
 
-  /// === HORN ===
-  // Alterna la bocina (Horn). Primero envía un reset neutro y luego el comando principal.
-  void toggleHorn() {
-    List<int> resetFrame = [
-      0xAA,
+  /// --- Helper para reset previo a cualquier comando ---
+  void _resetFrame() {
+    final reset = <int>[
+      0xAA, // header
+      0x00, // código “neutro”
       0x00,
       0x00,
       0x00,
-      0x00,
-      0x00,
-      0xFF,
-    ]; // Frame neutro para reset
-    sendCommand(resetFrame);
+      0x00, // payload vacío
+      0xFF, // footer
+    ];
+    sendCommand(reset);
+  }
 
-    List<int> frame = [
-      0xAA,
-      0x14,
-      0x09,
-      0x44,
-      0x0C,
-      0xA9,
-      0xFF,
-    ]; // Comando de bocina (Horn)
-    sendCommand(frame);
-    debugPrint("✅ Horn alternado después de reset.");
-    requestSystemStatus();
-  } // FIN toggleHorn
+// ----------------------------
+// Dentro de ControlController:
+// ----------------------------
 
-  /// === WAIL ===
-  // Activa el sonido Wail con el frame correspondiente
-  void toggleWail() {
-    List<int> frame = [
-      0xAA,
-      0x14,
-      0x10,
-      0x44,
-      0xF2,
-      0x78,
-      0xFF,
-    ]; // Protocolo Wail
-    sendCommand(frame);
-    debugPrint("✅ Wail alternado.");
+  /// --- Press (Horn ON) desde la App ---
+  Future<void> pressHornApp() async {
+    // 1) Validamos que el Horn T04 físico no esté activo
+    if (_hornT04Active) {
+      debugPrint("❌ No puedes activar Horn de la App mientras Horn T04 está activo.");
+      return;
+    }
+
+    // 2) Primero enviamos el frame “neutro” de reset (si es que lo necesitas)
+    _resetFrame(); // <-- Asegúrate de que este método exista y haga lo que deba (frame neutro)
+
+    // 3) Enviamos el frame de Horn ON (App → BTPW)
+    final List<int> hornOnFrame = <int>[
+      0xAA, // header
+      0x14, // comando general (cambiar tono / Horn)
+      0x09, // función “Horn” (ON)
+      0x44, // payload byte 1
+      0x0C, // payload byte 2
+      0xA9, // CRC (checksum)
+      0xFF, // footer
+    ];
+    sendCommand(hornOnFrame);
+
+    debugPrint(
+        "✅ [ControlController] Horn ON (App) enviado: "
+            "${hornOnFrame.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}"
+    );
+
+    // 4) Si quieres actualizar inmediatamente el estado del sistema,
+    //    solicita el estado completo del módulo:
     requestSystemStatus();
-  } // FIN toggleWail
+  }
+
+  /// --- Release (Horn OFF) desde la App ---
+  Future<void> releaseHornApp() async {
+    // 1) Validamos que el Horn T04 físico no esté activo
+    if (_hornT04Active) {
+      debugPrint("❌ No puedes liberar Horn de la App mientras Horn T04 está activo.");
+      return;
+    }
+
+    // 2) (Opcional) Si antes necesitabas un “reset” neutro, ya fue enviado en pressHornApp().
+    //    De lo contrario puedes volver a hacer _resetFrame() aquí si tu protocolo lo requiere.
+
+    // 3) Enviamos el frame de Horn OFF (App → BTPW)
+    final List<int> hornOffFrame = <int>[
+      0xAA, // header
+      0x14, // comando general (cambiar tono / Horn)
+      0x28, // función “Horn” + bit de liberación (0x28)
+      0x44, // payload byte 1
+      0x74, // payload byte 2
+      0xF9, // CRC (checksum)
+      0xFF, // footer
+    ];
+    sendCommand(hornOffFrame);
+
+    debugPrint(
+        "✅ [ControlController] Horn OFF (App) enviado: "
+            "${hornOffFrame.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}"
+    );
+
+    // 4) Volvemos a pedir estado completo para que se refleje en consola:
+    requestSystemStatus();
+  }
+
+
+  /// --- Press Wail (App) ---
+  Future<void> pressWailApp() async {
+    // 1) Validamos que el Wail T04 físico no esté activo
+    if (_wailT04Active) {
+      debugPrint("❌ No puedes activar Wail de la App mientras Wail T04 está activo.");
+      return;
+    }
+
+    // 2) (Opcional) Enviamos frame neutro de reset, si tu protocolo lo requiere:
+    _resetFrame();
+
+    // 3) Construimos y enviamos la trama de “Wail ON (App → BTPW)”
+    final List<int> wailOnFrame = <int>[
+      0xAA, // header
+      0x14, // comando general (cambiar tono / Wail)
+      0x10, // función “Wail ON”
+      0x44, // payload byte1 (igual que en Horn)
+      0xF2, // payload byte2 (parte alta de CRC para “press Wail”)
+      0x78, // payload byte3 (parte baja de CRC para “press Wail”)
+      0xFF, // footer
+    ];
+    sendCommand(wailOnFrame);
+
+    debugPrint(
+        "✅ [ControlController] Wail ON (App) enviado: "
+            "${wailOnFrame.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}"
+    );
+
+    // 4) Solicitamos de nuevo el estado completo, para que la próxima respuesta
+    //    se imprima en consola (BTPW → App).
+    requestSystemStatus();
+  }
+
+  /// --- Release Wail (App) ---
+  Future<void> releaseWailApp() async {
+    // 1) Validamos que el Wail T04 físico no esté activo
+    if (_wailT04Active) {
+      debugPrint("❌ No puedes liberar Wail de la App mientras Wail T04 está activo.");
+      return;
+    }
+
+    // 2) (Opcional) Si tu protocolo lo requiere, podrías volver a mandar _resetFrame(),
+    //    pero normalmente con el “press” basta. Si hace falta, descomenta la línea siguiente:
+    // _resetFrame();
+
+    // 3) Construimos y enviamos la trama de “Wail OFF (App → BTPW)”
+    final List<int> wailOffFrame = <int>[
+      0xAA, // header
+      0x14, // comando general (cambiar tono / Wail)
+      0x29, // función “Wail OFF” (0x29 según tu protocolo)
+      0x44, // payload byte1
+      0xB4, // payload byte2 alta del CRC para “release Wail”
+      0xA8, // payload byte3 baja del CRC para “release Wail”
+      0xFF, // footer
+    ];
+    sendCommand(wailOffFrame);
+
+    debugPrint(
+        "✅ [ControlController] Wail OFF (App) enviado: "
+            "${wailOffFrame.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}"
+    );
+
+    // 4) Solicitamos nuevamente el estado completo para que la respuesta llegue
+    //    y se imprima en consola (BTPW → App).
+    requestSystemStatus();
+  }
+
 
   Future<void> initRecorder() async {
     if (_recorder.isStopped && !_isRecorderInitialized) {
@@ -518,27 +631,10 @@ class ControlController extends ChangeNotifier {
 
 
   final StreamController<Uint8List> _audioStreamController =
-      StreamController<Uint8List>();
+  StreamController<Uint8List>();
 
   Future<void> togglePTT() async {
     const pttFrame = <int>[0xAA, 0x14, 0x11, 0x44, 0x32, 0x29, 0xFF];
-
-/*
-    if (classicConnection == null || !(classicConnection?.isConnected ?? false)) {
-      debugPrint("❗ Classic no conectado");
-      return;
-    }
-
-    final deviceName = connectedClassicDevice?.name?.toLowerCase().trim() ?? '';
-    debugPrint("🔍 Conectado a Classic con nombre: '$deviceName'");
-
-    if (!(deviceName.contains('btpw') || deviceName.contains('pw'))) {
-      debugPrint("❗ Conectado a Classic, pero no es BTPW");
-      return;
-    }
-
-
-*/
 
     if (!await Permission.microphone.request().isGranted) return;
 
@@ -603,69 +699,6 @@ class ControlController extends ChangeNotifier {
     super.dispose();
   }
 
-  // === Métodos auxiliares ===
-
-  Future<void> _startLiveMicToClassic() async {
-    try {
-      if (!_recorder.isRecording) {
-        await _recorder.openRecorder();
-
-        final controller = StreamController<Uint8List>();
-
-        controller.stream.listen((chunk) {
-          debugPrint("🎧 Enviando chunk de ${chunk.length} bytes");
-          if (classicConnection != null && classicConnection!.isConnected) {
-            classicConnection!.output.add(chunk);
-            classicConnection!.output.allSent;
-          }
-        });
-
-        await _recorder.startRecorder(
-          codec: Codec.pcm16,
-          numChannels: 1,
-          sampleRate: 8000,
-          toStream: controller.sink,
-        );
-
-        debugPrint("🎤 Transmisión de audio en tiempo real INICIADA");
-      }
-    } catch (e) {
-      debugPrint("❌ Error iniciando transmisión en vivo: $e");
-    }
-  }
-
-  Future<void> _stopLiveMicToClassic() async {
-    try {
-      if (_recorder.isRecording) {
-        await _recorder.stopRecorder();
-        await _recorder.closeRecorder();
-        debugPrint("⛔ Transmisión de audio DETENIDA");
-      }
-    } catch (e) {
-      debugPrint("❌ Error deteniendo audio en vivo: $e");
-    }
-  }
-
-  Future<void> _connectClassicIfRemembered(String mac) async {
-    try {
-      final bonded =
-          await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
-      final device = bonded.firstWhere(
-        (d) => d.address == mac,
-        orElse: () => throw Exception("⚠️ Classic no encontrado"),
-      );
-      classicConnection = await btClassic.BluetoothConnection.toAddress(mac);
-      debugPrint("✅ Conexión Classic establecida con $mac");
-    } catch (e) {
-      debugPrint("❌ Error conectando Classic: $e");
-    }
-  }
-
-  /// === PERMISO MICRÓFONO ===
-  Future<bool> _requestMicrophonePermission() async {
-    var status = await Permission.microphone.request();
-    return status.isGranted;
-  }
 
   Future<void> _deactivateBluetoothClassic() async {
     try {
@@ -738,66 +771,102 @@ class ControlController extends ChangeNotifier {
 
   void listenForResponses(BluetoothCharacteristic characteristic) {
     characteristic.setNotifyValue(true);
-    characteristic.value.listen((response) {
+    characteristic.value.listen((raw) {
+      // 0) Creamos copia para poder reasignar tras eco ASCII
+      List<int> response = List.of(raw);
+
       // HEX de depuración
-      String hex =
-          response
-              .map((e) => e.toRadixString(16).padLeft(2, '0'))
-              .join(' ')
-              .toUpperCase();
+      final hex = response
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join(' ')
+          .toUpperCase();
       debugPrint("📩 Respuesta HEX recibida: $hex");
 
-      // 1️⃣ Detectar si la respuesta es eco ASCII (comienza con '41 41' = 'AA' en ASCII)
+      // 1️⃣ Detectar eco ASCII (0x41,0x41 = 'AA')
       if (response.length > 3 && response[0] == 0x41 && response[1] == 0x41) {
         debugPrint("🔴 Trama es un eco ASCII, intentamos decodificar...");
-
         try {
-          String ascii = utf8.decode(response).trim();
+          final ascii = utf8.decode(response).trim();
           final hexClean = ascii.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '');
-          final bytes = <int>[];
-
-          for (int i = 0; i < hexClean.length - 1; i += 2) {
-            bytes.add(int.parse(hexClean.substring(i, i + 2), radix: 16));
+          final decoded = <int>[];
+          for (var i = 0; i < hexClean.length - 1; i += 2) {
+            decoded.add(int.parse(hexClean.substring(i, i + 2), radix: 16));
           }
-
-          // 🔁 Reasignamos los bytes decodificados
-          response = bytes;
+          response = decoded;
+          debugPrint("   → Decodificado a: "
+              "${response.map((e) => e.toRadixString(16).padLeft(2,'0')).join(' ')}");
         } catch (e) {
           debugPrint("❌ Error al decodificar trama ASCII: $e");
           return;
         }
       }
 
-      // 2️⃣ Validación real del frame esperado de estado de sistema
-      if (response.length >= 7 &&
-          response[0] == 0xAA &&
-          response[1] == 0x18 &&
-          response[2] == 0x18 &&
-          response[3] == 0x55) {
-        final batteryByte = response[5];
-        debugPrint(
-          "🔋 Byte de batería: 0x${batteryByte.toRadixString(16).toUpperCase()}",
-        );
+      // 2️⃣ Validación del frame de estado de sistema
+      if (response.length >= 7
+          && response[0] == 0xAA
+          && response[1] == 0x18
+          && response[2] == 0x18
+          && response[3] == 0x55) {
 
+        final funcCode    = response[4];
+        final batteryByte = response[5];
+
+        // ── 3️⃣ Parseamos función T04 ──────────────────────────────────
+        switch (funcCode) {
+          case 3: // Horn T04
+            _hornT04Active = true;
+            _wailT04Active = false;
+            _pttT04Active  = false;
+            debugPrint("🔊 Función: Horn T04 activa");
+            break;
+          case 4: // Wail T04
+            _hornT04Active = false;
+            _wailT04Active = true;
+            _pttT04Active  = false;
+            debugPrint("🚨 Función: Wail T04 activa");
+            break;
+          case 5: // PTT T04
+            _hornT04Active = false;
+            _wailT04Active = false;
+            _pttT04Active  = true;
+            debugPrint("📢 Función: PTT T04 activa");
+            break;
+          default:
+          // Desactivamos los que estuvieran activos
+            if (_hornT04Active) {
+              _hornT04Active = false;
+              debugPrint("🔊 Función: Horn T04 desactivada");
+            }
+            if (_wailT04Active) {
+              _wailT04Active = false;
+              debugPrint("🚨 Función: Wail T04 desactivada");
+            }
+            if (_pttT04Active) {
+              _pttT04Active = false;
+              debugPrint("📢 Función: PTT T04 desactivada");
+            }
+            debugPrint("🔧 Función desconocida: $funcCode");
+        }
+
+        // ── 4️⃣ Parseamos batería ───────────────────────────────────────
         switch (batteryByte) {
           case 0x14:
-            batteryLevel = BatteryLevel.full;
-            batteryImagePath = 'assets/images/Estados/battery_full.png';
-            debugPrint("✅ Batería COMPLETA");
+            batteryLevel      = BatteryLevel.full;
+            batteryImagePath  = 'assets/images/Estados/battery_full.png';
+            debugPrint("🔋 Batería COMPLETA");
             break;
           case 0x15:
-            batteryLevel = BatteryLevel.medium;
-            batteryImagePath = 'assets/images/Estados/battery_medium.png';
+            batteryLevel      = BatteryLevel.medium;
+            batteryImagePath  = 'assets/images/Estados/battery_medium.png';
             debugPrint("⚠️ Batería MEDIA");
             break;
           case 0x16:
-            batteryLevel = BatteryLevel.low;
-            batteryImagePath = 'assets/images/Estados/battery_low.png';
+            batteryLevel      = BatteryLevel.low;
+            batteryImagePath  = 'assets/images/Estados/battery_low.png';
             debugPrint("🚨 Batería BAJA");
             break;
           default:
             debugPrint("❓ Byte de batería desconocido: $batteryByte");
-            break;
         }
 
         notifyListeners();
@@ -805,7 +874,9 @@ class ControlController extends ChangeNotifier {
         debugPrint("⚠️ Trama no coincide con estado de sistema esperada.");
       }
     });
-  }
+        }
+
+
 
   /// Envía el protocolo por BLE para que el hardware active el modo Classic (BT_PwAudio)
   Future<void> sendActivateAudioModeOverBLE() async {
@@ -833,7 +904,7 @@ class ControlController extends ChangeNotifier {
       final connected = await ble.FlutterBluePlus.connectedDevices;
       try {
         device = connected.firstWhere(
-          (d) => d.platformName.toLowerCase().contains('btpw'),
+              (d) => d.platformName.toLowerCase().contains('btpw'),
         );
         debugPrint("✅ Dispositivo Pw ya conectado: ${device.platformName}");
       } catch (_) {

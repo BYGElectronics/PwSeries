@@ -7,18 +7,15 @@ import 'package:pw/src/Controller/control_controller.dart';
 import 'package:pw/widgets/header_menu_widget.dart';
 import '../../widgets/drawerMenuWidget.dart';
 import '../../widgets/tecladoPwWidget.dart';
+import '../Controller/estatus.dart';
 import '../Controller/idioma_controller.dart';
 
 class ControlScreen extends StatefulWidget {
   final BluetoothDevice? connectedDevice;
   final ControlController? controller;
 
-
-  const ControlScreen({
-    Key? key,
-    this.connectedDevice,
-    this.controller,
-  }) : super(key: key);
+  const ControlScreen({Key? key, this.connectedDevice, this.controller})
+      : super(key: key);
 
   @override
   State<ControlScreen> createState() => _ControlScreenState();
@@ -26,7 +23,7 @@ class ControlScreen extends StatefulWidget {
 
 class _ControlScreenState extends State<ControlScreen> {
   late final ControlController _controller;
-  late VoidCallback _bondListener;
+  VoidCallback? _bondListener; // ahora nullable
 
   @override
   void initState() {
@@ -34,16 +31,19 @@ class _ControlScreenState extends State<ControlScreen> {
 
     _controller = widget.controller ?? ControlController();
 
-
-
+    // Arrancamos el sondeo cada 1 segundo (parámetro nombrado)
+    context.read<EstadoSistemaController>().startPolling(
+       const Duration(seconds: 1),
+    );
 
     if (widget.connectedDevice != null) {
       // 1) Configuramos el dispositivo BLE para usarlo
       _controller.setDevice(widget.connectedDevice!);
+
       // 2) Registramos como “bond” para monitorizar el emparejamiento
       _controller.setDeviceBond(widget.connectedDevice!);
 
-      // 3) Listener: si realmente pierde el emparejamiento, volvemos a configuración
+      // 3) Listener: si pierde el emparejamiento, volvemos a configuración
       _bondListener = () {
         if (_controller.shouldSetup.value) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -55,7 +55,7 @@ class _ControlScreenState extends State<ControlScreen> {
           });
         }
       };
-      _controller.shouldSetup.addListener(_bondListener);
+      _controller.shouldSetup.addListener(_bondListener!);
 
       // 4) Empezamos a pedir estado de batería periódicamente
       _controller.startBatteryStatusMonitoring();
@@ -65,8 +65,11 @@ class _ControlScreenState extends State<ControlScreen> {
 
   @override
   void dispose() {
-    // Limpiamos todos los listeners/timers
-    _controller.shouldSetup.removeListener(_bondListener);
+    // Solo quitamos el listener si fue registrado
+    if (_bondListener != null) {
+      _controller.shouldSetup.removeListener(_bondListener!);
+      _bondListener = null;
+    }
     _controller.stopBondMonitoring();
     _controller.stopBatteryStatusMonitoring();
     super.dispose();
@@ -161,17 +164,21 @@ class _ControlScreenState extends State<ControlScreen> {
                     await _controller.disconnectDevice();
                   } else {
                     // Intenta conexión manual BLE
-                    final ok = await _controller.conectarManualBLE(context);
+                    final ok =
+                    await _controller.conectarManualBLE(context);
                     if (ok && widget.connectedDevice != null) {
                       // Reiniciamos bond-monitor y batería tras reconectar
-                      _controller.setDeviceBond(widget.connectedDevice!);
+                      _controller.setDeviceBond(
+                          widget.connectedDevice!);
                       _controller.startBatteryStatusMonitoring();
                       _controller.requestSystemStatus();
                     }
                   }
                 },
                 child: Image.asset(
-                  _localizedButton(conectado ? "Desconectar" : "Conectar"),
+                  _localizedButton(
+                    conectado ? "Desconectar" : "Conectar",
+                  ),
                   width: screenW * 0.75,
                 ),
               ),

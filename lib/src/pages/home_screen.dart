@@ -1,29 +1,17 @@
 // **Importaciones necesarias**
-import 'package:flutter/material.dart'; // Importa la librería de Flutter para construir la UI
-import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Manejo de Bluetooth BLE
-import 'package:provider/provider.dart'; // Proveedor de estado para manejar la lógica de configuración
-import 'package:pw/src/Controller/home_controller.dart'; // Controlador principal de la pantalla de inicio
-import 'package:pw/src/Controller/config_controller.dart'; // Controlador de configuración
-import 'package:pw/src/localization/app_localization.dart';
-
-import '../Controller/idioma_controller.dart'; // Manejo de internacionalización (traducción)
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+// Asegúrate de que estas rutas sean correctas para tu proyecto
+// import 'package:pw/src/Controller/home_controller.dart'; // No se usa directamente en este build
+// import 'package:pw/src/Controller/config_controller.dart'; // config_controller no se usa aquí directamente
+import 'package:pw/src/Controller/idioma_controller.dart'; // Confirmado: se usa IdiomaController
+// import 'package:pw/src/localization/app_localization.dart'; // Descomentar si se usa para textos localizados
 
 // **Clase principal que representa la pantalla de inicio**
-//
-// Esta pantalla permite activar y buscar dispositivos Bluetooth,
-// cambiar el modo de tema (oscuro/claro) y acceder a la configuración.
 class HomeScreen extends StatefulWidget {
-  // **Parámetro para alternar el modo de tema (oscuro/claro)**
   final VoidCallback toggleTheme;
-
-  // **Parámetro para conocer el estado actual del tema**
   final ThemeMode themeMode;
 
-  // **Constructor de la clase HomeScreen**
-  //
-  // Requiere dos parámetros:
-  // - `toggleTheme`: Función para cambiar el tema.
-  // - `themeMode`: Indica el tema actual del sistema.
   const HomeScreen({
     super.key,
     required this.toggleTheme,
@@ -35,77 +23,147 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final HomeController _controller = HomeController();
-
-  /// **Función para obtener la imagen del botón según el idioma**
-  String _getLocalizedButtonImage(String buttonName, String locale) {
-    String folder = "assets/images/Botones"; // Carpeta base de las imágenes
-
-    switch (locale) {
-      case "es":
-        return "$folder/Espanol/$buttonName.png"; // Español
-      case "fr":
-        return "$folder/Frances/${buttonName}_3.png"; // Francés
-      case "en":
-        return "$folder/Ingles/${buttonName}_1.png"; // Inglés
-      case "pt":
-        return "$folder/Portugues/${buttonName}_2.png"; // Portugués
-      default:
-        return "$folder/Espanol/$buttonName.png"; // Español por defecto
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final configController = Provider.of<ConfigController>(context);
-    final textColor =
-        Theme.of(context).textTheme.bodyMedium?.color ??
-        Colors.white; // ✅ Se adapta al modo oscuro SOLO para textos
-    final idiomaController = Provider.of<IdiomaController>(context);
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
 
-    // 🔹 Ajustes dinámicos del header
-    double headerHeight = screenHeight * 0.16; // Altura del header
+    // --- Ajustes Responsivos ---
+
+    // 1. Altura del Header:
+    double headerHeight = (screenHeight * 0.15).clamp(80.0, 150.0);
+
+    // 2. Posicionamiento y Tamaño del Botón Principal:
+    final double horizontalPadding = screenWidth * 0.1;
+    final double topPaddingForButton = headerHeight + (screenHeight * 0.05);
+
+    double buttonMaxWidth = 600.0;
+    double buttonWidth = (screenWidth - (2 * horizontalPadding)) * 1;
+    if (buttonWidth > buttonMaxWidth) {
+      buttonWidth = buttonMaxWidth;
+    }
+    // Ajustar la altura máxima del botón para que ocupe una porción significativa pero deje algo de espacio.
+    double buttonMaxHeight = screenHeight * 0.65; // Aumentado un poco ya que no hay botones abajo
+    // Ajustar el 'bottom' del Positioned para el botón principal para que se centre mejor verticalmente
+    // si no hay otros elementos debajo.
+    double mainButtonBottomPadding = screenHeight * 0.1; // Padding desde abajo
+
 
     return Scaffold(
       body: Stack(
         children: [
+          // --- Header ---
           Positioned(
             top: 0,
-            width: screenWidth,
+            left: 0,
+            right: 0,
             child: Container(
               height: headerHeight,
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage("assets/images/header.png"),
+                  image: AssetImage("assets/images/header.png"), // Asegúrate que esta ruta sea correcta
                   fit: BoxFit.cover,
                 ),
               ),
             ),
           ),
 
-          // 🔵 Botón Imagen debajo
+          // --- Botón Principal ---
           Positioned(
-            top: screenHeight * 0.2, // Deja espacio debajo del header
-            left: 0,
-            right: 0,
+            top: topPaddingForButton,
+            left: horizontalPadding,
+            right: horizontalPadding,
+            bottom: mainButtonBottomPadding, // Usar el nuevo padding inferior
             child: Center(
               child: GestureDetector(
                 onTap: () {
                   Navigator.pushNamed(context, 'configuracionBluetooth');
                 },
-                child: Image.asset(
-                  'assets/img/botones/botonConfigInicial.png', // 🔵 Ruta de tu imagen de botón
-                  width: screenHeight * 0.4, // Opcional: tamaño responsivo
-                  height: screenHeight * 0.6,
-                  fit: BoxFit.contain,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: buttonWidth,
+                    maxHeight: buttonMaxHeight,
+                  ),
+                  child: Image.asset(
+                    'assets/img/botones/botonConfigInicial.png', // Ruta de tu imagen de botón
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Center(child: Text('Error al cargar imagen', textAlign: TextAlign.center,)),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
           ),
+
+          // --- SECCIÓN DE BOTONES DE IDIOMA Y TEMA ELIMINADA ---
+          // El Align widget y su contenido (LayoutBuilder, Flex, _buildOptionButton calls)
+          // han sido removidos según tu solicitud.
         ],
       ),
     );
   }
+
+// El método _buildOptionButton ya no es necesario si solo hay un botón principal.
+// Puedes eliminarlo o comentarlo si no se usa en ningún otro lugar.
+/*
+  Widget _buildOptionButton({
+    required BuildContext context,
+    required String imagePath,
+    required VoidCallback onTap,
+    required bool isColumnLayout,
+    required double screenWidth,
+    required double buttonBaseSizeRatio, // Ratio para calcular el tamaño del botón
+  }) {
+    final theme = Theme.of(context);
+    double buttonWidth = (screenWidth * (isColumnLayout ? buttonBaseSizeRatio : (buttonBaseSizeRatio / 1.5))).clamp(80.0, 180.0);
+    double buttonHeightRatio = 0.4;
+    double buttonHeight = buttonWidth * buttonHeightRatio;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Image.asset(
+        imagePath,
+        width: buttonWidth,
+        height: buttonHeight,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          print("Error cargando imagen del botón: $imagePath, Error: $error");
+          return Container(
+            width: buttonWidth,
+            height: buttonHeight,
+            color: theme.colorScheme.errorContainer.withOpacity(0.5),
+            child: Center(
+              child: Icon(
+                Icons.broken_image,
+                color: theme.colorScheme.onErrorContainer,
+                size: buttonHeight * 0.8,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+  */
+
+// El método _getLocalizedButtonImage ya no es necesario si solo hay un botón principal
+// y ese botón no cambia con el idioma. Si el botón principal SÍ cambia, necesitarás esta lógica.
+// Por ahora, lo comento.
+/*
+  String _getLocalizedButtonImage(String buttonNameBase, String languageCode) {
+    String folder = "assets/images/Botones";
+    Map<String, Map<String, String>> langConfig = {
+      "es": {"folder": "Espanol", "suffix": ""},
+      "en": {"folder": "Ingles", "suffix": "_1"},
+      "fr": {"folder": "Frances", "suffix": "_3"},
+      "pt": {"folder": "Portugues", "suffix": "_2"},
+    };
+    Map<String, String> currentLang = langConfig[languageCode] ?? langConfig["es"]!;
+    return "$folder/${currentLang['folder']}/$buttonNameBase${currentLang['suffix']}.png";
+  }
+  */
 }

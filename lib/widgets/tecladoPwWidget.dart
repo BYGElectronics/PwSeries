@@ -31,8 +31,8 @@ class TecladoPW extends StatelessWidget {
                 _buildPressHoldButton(
                   assetOn: "assets/img/teclado/wailOn.png",
                   assetOff: "assets/img/teclado/wailOff.png",
-                  onPress: () => controller.toggleWail(),
-                  onRelease: () => controller.toggleWail(),
+                  onPress: () => controller.pressWailApp(),
+                  onRelease: () => controller.releaseWailApp(),
                   enabled: conectado,
                   width: fondoWidth * 0.25,
                   height: fondoHeight * 0.35,
@@ -71,8 +71,8 @@ class TecladoPW extends StatelessWidget {
                 _buildPressHoldButton(
                   assetOn: "assets/img/teclado/hornOn.png",
                   assetOff: "assets/img/teclado/hornOff.png",
-                  onPress: () => controller.toggleHorn(),
-                  onRelease: () => controller.toggleHorn(),
+                  onPress: () => controller.pressHornApp(),
+                  onRelease: () => controller.releaseHornApp(),
                   enabled: conectado,
                   width: fondoWidth * 0.25,
                   height: fondoHeight * 0.35,

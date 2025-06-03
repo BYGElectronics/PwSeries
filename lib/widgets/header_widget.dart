@@ -16,7 +16,7 @@ class HeaderWidget extends StatelessWidget {
       width: screenWidth,
       height: headerHeight,
       child: Image.asset(
-        'assets/img/header/header.png', //  Ruta a tu imagen PNG
+        'assets/images/header.png', //  Ruta a tu imagen PNG
         width: screenWidth,
         height: headerHeight,
         fit: BoxFit.cover, // Para que se ajuste bien

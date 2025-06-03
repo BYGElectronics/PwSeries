@@ -39,21 +39,21 @@ class _TecladoPinWidgetState extends State<TecladoPinWidget> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 50),
+        const SizedBox(height: 0.01),
 
         Text(
           '•' * pin.length,
-          style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
 
-        const SizedBox(height: 15),
-        const Divider(thickness: 2, color: Colors.black),
+        const SizedBox(height: 0.01),
+        const Divider(thickness: 1, color: Colors.black),
         Expanded(
           child: GridView.count(
             crossAxisCount: 3,
-            padding: const EdgeInsets.all(30),
-            mainAxisSpacing: 20,
-            crossAxisSpacing: 35,
+            padding: const EdgeInsets.all(40),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 20,
             children: [
               for (var i = 1; i <= 9; i++) _buildTecla('$i'),
               _buildTecla('X', esBorrar: true),

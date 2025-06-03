@@ -3,9 +3,11 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:provider/provider.dart';
 
 import 'package:pw/src/Controller/control_controller.dart';
+import 'package:pw/src/Controller/estatus.dart';
 import 'package:pw/src/Controller/home_controller.dart';
 import 'package:pw/src/Controller/config_controller.dart';
 import 'package:pw/src/Controller/idioma_controller.dart';
+import 'package:pw/src/Controller/pttController.dart';
 import 'package:pw/src/Controller/text_size_controller.dart';
 import 'package:pw/src/Controller/theme_controller.dart'; // ✅ NUEVO
 
@@ -30,14 +32,29 @@ import 'package:pw/src/pages/text_size_screen.dart';
 final ControlController _controlController = ControlController();
 
 void main() {
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => IdiomaController()),
         ChangeNotifierProvider(create: (_) => TextSizeController()),
         ChangeNotifierProvider(create: (_) => ConfigController()),
-        ChangeNotifierProvider(create: (_) => ThemeController()), // ✅ NUEVO
-        ChangeNotifierProvider<ControlController>.value(value: _controlController),
+        ChangeNotifierProvider(create: (_) => ThemeController()),
+
+        // EstadoSistemaController arrancará su polling cada 1 segundo
+        ChangeNotifierProvider<EstadoSistemaController>(
+          lazy: false,
+          create: (_) {
+            final estadoCtrl = EstadoSistemaController();
+            estadoCtrl.startPolling(const Duration(seconds: 1));
+            return estadoCtrl;
+          },
+        ),
+
+        // Tu controlador de control (ble/ptt/etc)
+        ChangeNotifierProvider<ControlController>.value(
+          value: _controlController,
+        ),
       ],
       child: const MyAppWrapper(),
     ),
