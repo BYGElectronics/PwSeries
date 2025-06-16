@@ -59,8 +59,7 @@ class HomeController {
       List<ScanResult> validDevices =
           results.where((r) {
             String deviceName = r.device.platformName;
-            return deviceName.contains("BTPW") ||
-                deviceName.contains("BTPW");
+            return deviceName.contains("BTPW") || deviceName.contains("BTPW");
           }).toList();
 
       filteredDevices.value = validDevices;
@@ -73,7 +72,8 @@ class HomeController {
   }
 
   void openControlScreen(BuildContext context) {
-    if (connectedDevice != null && connectedDevice!.platformName.contains("Pw")) {
+    if (connectedDevice != null &&
+        connectedDevice!.platformName.contains("Pw")) {
       Navigator.pushNamed(
         context,
         "/control",
@@ -83,7 +83,9 @@ class HomeController {
         },
       );
     } else {
-      debugPrint("⚠️ Debes conectar un dispositivo PW para acceder al teclado.");
+      debugPrint(
+        "⚠️ Debes conectar un dispositivo PW para acceder al teclado.",
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Conéctate a un dispositivo PW para usar el teclado."),
@@ -92,8 +94,6 @@ class HomeController {
       );
     }
   }
-
-
 
   /// Conectar a un dispositivo filtrado
   Future<void> connectToDevice(BluetoothDevice device) async {
@@ -175,5 +175,4 @@ class HomeController {
       );
     }
   }
-
 }

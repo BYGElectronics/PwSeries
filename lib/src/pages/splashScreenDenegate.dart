@@ -5,10 +5,13 @@ class SplashConexionDenegateScreen extends StatefulWidget {
   const SplashConexionDenegateScreen({Key? key}) : super(key: key);
 
   @override
-  _SplashConexionDenegateScreenState createState() => _SplashConexionDenegateScreenState();
+  _SplashConexionDenegateScreenState createState() =>
+      _SplashConexionDenegateScreenState();
 }
 
-class _SplashConexionDenegateScreenState extends State<SplashConexionDenegateScreen> with SingleTickerProviderStateMixin {
+class _SplashConexionDenegateScreenState
+    extends State<SplashConexionDenegateScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -21,9 +24,10 @@ class _SplashConexionDenegateScreenState extends State<SplashConexionDenegateScr
       vsync: this,
     )..forward();
 
-    _scaleAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     Timer(const Duration(seconds: 2), () {
       if (!mounted) return;

@@ -34,7 +34,12 @@ class _ThemeScreen extends StatelessWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          const Positioned(top: 0, left: 0, right: 0, child: HeaderMenuWidget()),
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: HeaderMenuWidget(),
+          ),
           Positioned(
             top: screenHeight * 0.18,
             left: 27,
@@ -65,12 +70,16 @@ class _ThemeScreen extends StatelessWidget {
                   ),
                   title: const Text(
                     'Modo Oscuro',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontFamily: 'Roboto-bold',
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   onTap: () {
                     themeController.setThemeMode(ThemeMode.dark);
                     Navigator.of(context).pop();
-                    Navigator.pushNamed(context, 'configAvanzada');
+                    Navigator.pushNamed(context, '/configAvanzada');
                   },
                 ),
 
@@ -84,12 +93,16 @@ class _ThemeScreen extends StatelessWidget {
                   ),
                   title: const Text(
                     'Modo Claro',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontFamily: 'Roboto-bold',
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   onTap: () {
                     themeController.setThemeMode(ThemeMode.light);
                     Navigator.of(context).pop();
-                    Navigator.pushNamed(context, 'configAvanzada');
+                    Navigator.pushNamed(context, '/configAvanzada');
                   },
                 ),
 
@@ -103,12 +116,16 @@ class _ThemeScreen extends StatelessWidget {
                   ),
                   title: const Text(
                     'Sistema',
-                    style: TextStyle(fontSize: 21, fontFamily: 'Roboto-bold', fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontFamily: 'Roboto-bold',
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   onTap: () {
                     themeController.setThemeMode(ThemeMode.system);
                     Navigator.of(context).pop();
-                    Navigator.pushNamed(context, 'configAvanzada');
+                    Navigator.pushNamed(context, '/configAvanzada');
                   },
                 ),
               ],

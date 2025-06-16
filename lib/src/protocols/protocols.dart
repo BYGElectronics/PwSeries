@@ -78,6 +78,4 @@ class Protocols {
       [0x00, 0x00],
     ); // CRC de desactivación
   }
-
-
 }

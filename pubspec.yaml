@@ -32,8 +32,7 @@ dependencies:
   path_provider: ^2.1.5
   get: ^4.7.2
   url_launcher: ^6.3.1
-
-
+  device_preview: ^1.2.0
 
 dev_dependencies:
   flutter_test:

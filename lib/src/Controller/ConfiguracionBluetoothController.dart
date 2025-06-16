@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as ble;
@@ -40,36 +41,38 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
   }
 
   Future<void> _inicializarBluetooth() async {
-    // 1) Asegurar Bluetooth ON
-    final estado = await FlutterBluetoothSerial.instance.state;
-    if (estado != BluetoothState.STATE_ON) {
-      await FlutterBluetoothSerial.instance.requestEnable();
-    }
-
-    // 2) Pedir permiso de conexión Classic
-    if (await Permission.bluetoothConnect.isDenied) return;
-
-    // 3) Detectar automáticamente el primer Pw Classic emparejado
-    final bonded = await FlutterBluetoothSerial.instance.getBondedDevices();
-    for (var d in bonded) {
-      if (d.name?.toLowerCase().contains("btpw") == true) {
-        final auto = DeviceData(
-          name: d.name!,
-          address: d.address,
-          isBLE: false,
-        );
-        dispositivosEncontrados.add(auto);
-        // Si solo hay uno, seleccionarlo y mostrar PIN
-        if (dispositivosEncontrados.length == 1) {
-          selectedDevice = auto;
-        }
-        break;
+    if (Platform.isAndroid) {
+      // 1) Asegurar Bluetooth ON
+      final estado = await FlutterBluetoothSerial.instance.state;
+      if (estado != BluetoothState.STATE_ON) {
+        await FlutterBluetoothSerial.instance.requestEnable();
       }
-    }
-    notifyListeners();
 
-    // 4) Iniciar escaneo periódico (BLE + nuevos Classic)
-    _iniciarEscaneoPeriodico();
+      // 2) Pedir permiso de conexión Classic
+      if (await Permission.bluetoothConnect.isDenied) return;
+
+      // 3) Detectar automáticamente el primer Pw Classic emparejado
+      final bonded = await FlutterBluetoothSerial.instance.getBondedDevices();
+      for (var d in bonded) {
+        if (d.name?.toLowerCase().contains("btpw") == true) {
+          final auto = DeviceData(
+            name: d.name!,
+            address: d.address,
+            isBLE: false,
+          );
+          dispositivosEncontrados.add(auto);
+          // Si solo hay uno, seleccionarlo y mostrar PIN
+          if (dispositivosEncontrados.length == 1) {
+            selectedDevice = auto;
+          }
+          break;
+        }
+      }
+      notifyListeners();
+
+      // 4) Iniciar escaneo periódico (BLE + nuevos Classic)
+      _iniciarEscaneoPeriodico();
+    }
   }
 
   void togglePinVisibility(DeviceData device) {
@@ -103,9 +106,9 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
 
     // 1) Validar PIN máscara
     if (pinIngresado != pinMask) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("PIN incorrecto")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("PIN incorrecto")));
       return;
     }
 
@@ -132,8 +135,10 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
   Future<bool> _pairClassic(String mac) async {
     try {
       // Aquí inyectamos pinReal en el pairing
-      final success = await FlutterBluetoothSerial.instance
-          .bondDeviceAtAddress(mac, pin: pinReal);
+      final success = await FlutterBluetoothSerial.instance.bondDeviceAtAddress(
+        mac,
+        pin: pinReal,
+      );
       return success == true;
     } catch (e) {
       debugPrint("❌ Error en bond Classic: $e");
@@ -142,6 +147,7 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
   }
 
   Future<void> _connectClassic(String mac) async {
+    if (!Platform.isAndroid) return;
     try {
       final conn = await BluetoothConnection.toAddress(mac);
       debugPrint("✅ Classic conectado a $mac");
@@ -163,19 +169,24 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
       final completer = Completer<ble.BluetoothDevice>();
       _scanSubscription = ble.FlutterBluePlus.scanResults.listen((results) {
         for (var result in results) {
-          if (result.device.remoteId.id.toLowerCase() == macAddress.toLowerCase()) {
+          if (result.device.remoteId.id.toLowerCase() ==
+              macAddress.toLowerCase()) {
             completer.complete(result.device);
             break;
           }
         }
       });
       await ble.FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
-      dispositivoBLE = await completer.future.timeout(const Duration(seconds: 5));
+      dispositivoBLE = await completer.future.timeout(
+        const Duration(seconds: 5),
+      );
       await ble.FlutterBluePlus.stopScan();
       await _scanSubscription?.cancel();
 
       if (dispositivoBLE == null) {
-        throw Exception("No se encontró el dispositivo BLE con MAC $macAddress");
+        throw Exception(
+          "No se encontró el dispositivo BLE con MAC $macAddress",
+        );
       }
 
       // 3) Conectarse al dispositivo
@@ -207,7 +218,7 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
       if (context.mounted) {
         Navigator.pushReplacementNamed(
           context,
-          'splash_confirmacion',
+          '/splash_confirmacion',
           arguments: {
             'device': dispositivoBLE,
             'controller': controlController,
@@ -218,13 +229,10 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
       debugPrint("❌ Error en _conectarBLE: $e");
       // Si falla, vamos al splash de denegación
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, 'splash_denegate');
+        Navigator.pushReplacementNamed(context, '/splash_denegate');
       }
     }
   }
-
-
-
 
   void _iniciarEscaneoPeriodico() {
     _scanTimer?.cancel();
@@ -239,34 +247,34 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
 
     final nuevos = <DeviceData>[];
 
-    // 1) Recolectar Classic emparejados
-    final bonded = await FlutterBluetoothSerial.instance.getBondedDevices();
-    nuevos.addAll(bonded
-        .where((d) => d.name?.toLowerCase().contains("btpw") == true)
-        .map((d) => DeviceData(
-      name: d.name!,
-      address: d.address,
-      isBLE: false,
-    )));
+    // 1) Recolectar Classic emparejados (solo Android)
+    if (Platform.isAndroid) {
+      final bonded = await FlutterBluetoothSerial.instance.getBondedDevices();
+      nuevos.addAll(
+        bonded
+            .where((d) => d.name?.toLowerCase().contains("btpw") == true)
+            .map(
+              (d) =>
+                  DeviceData(name: d.name!, address: d.address, isBLE: false),
+            ),
+      );
+    }
 
     // 2) Escanear BLE
     await ble.FlutterBluePlus.stopScan();
     _scanSubscription?.cancel();
     final encontradosBLE = <DeviceData>[];
-    _scanSubscription =
-        ble.FlutterBluePlus.scanResults.listen((results) {
-          for (var r in results) {
-            final n = r.device.platformName;
-            if (n.toLowerCase().contains("btpw") &&
-                !encontradosBLE.any((e) => e.address == r.device.remoteId.str)) {
-              encontradosBLE.add(DeviceData(
-                name: n,
-                address: r.device.remoteId.str,
-                isBLE: true,
-              ));
-            }
-          }
-        });
+    _scanSubscription = ble.FlutterBluePlus.scanResults.listen((results) {
+      for (var r in results) {
+        final n = r.device.platformName;
+        if (n.toLowerCase().contains("btpw") &&
+            !encontradosBLE.any((e) => e.address == r.device.remoteId.str)) {
+          encontradosBLE.add(
+            DeviceData(name: n, address: r.device.remoteId.str, isBLE: true),
+          );
+        }
+      }
+    });
     await ble.FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
     await Future.delayed(const Duration(seconds: 5));
     await ble.FlutterBluePlus.stopScan();

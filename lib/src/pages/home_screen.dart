@@ -43,11 +43,11 @@ class _HomeScreenState extends State<HomeScreen> {
       buttonWidth = buttonMaxWidth;
     }
     // Ajustar la altura máxima del botón para que ocupe una porción significativa pero deje algo de espacio.
-    double buttonMaxHeight = screenHeight * 0.65; // Aumentado un poco ya que no hay botones abajo
+    double buttonMaxHeight =
+        screenHeight * 0.65; // Aumentado un poco ya que no hay botones abajo
     // Ajustar el 'bottom' del Positioned para el botón principal para que se centre mejor verticalmente
     // si no hay otros elementos debajo.
     double mainButtonBottomPadding = screenHeight * 0.1; // Padding desde abajo
-
 
     return Scaffold(
       body: Stack(
@@ -61,7 +61,9 @@ class _HomeScreenState extends State<HomeScreen> {
               height: headerHeight,
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage("assets/images/header.png"), // Asegúrate que esta ruta sea correcta
+                  image: AssetImage(
+                    "assets/images/header.png",
+                  ), // Asegúrate que esta ruta sea correcta
                   fit: BoxFit.cover,
                 ),
               ),
@@ -77,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Center(
               child: GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(context, 'configuracionBluetooth');
+                  Navigator.pushNamed(context, '/configuracionBluetooth');
                 },
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
@@ -85,12 +87,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     maxHeight: buttonMaxHeight,
                   ),
                   child: Image.asset(
-                    'assets/img/botones/botonConfigInicial.png', // Ruta de tu imagen de botón
+                    'assets/images/Botones/Espanol/ConfigInicial.png', // Ruta de tu imagen de botón
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[300],
-                        child: const Center(child: Text('Error al cargar imagen', textAlign: TextAlign.center,)),
+                        child: const Center(
+                          child: Text(
+                            'Error al cargar imagen',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -107,9 +114,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-// El método _buildOptionButton ya no es necesario si solo hay un botón principal.
-// Puedes eliminarlo o comentarlo si no se usa en ningún otro lugar.
-/*
+  // El método _buildOptionButton ya no es necesario si solo hay un botón principal.
+  // Puedes eliminarlo o comentarlo si no se usa en ningún otro lugar.
+  /*
   Widget _buildOptionButton({
     required BuildContext context,
     required String imagePath,
@@ -150,10 +157,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   */
 
-// El método _getLocalizedButtonImage ya no es necesario si solo hay un botón principal
-// y ese botón no cambia con el idioma. Si el botón principal SÍ cambia, necesitarás esta lógica.
-// Por ahora, lo comento.
-/*
+  // El método _getLocalizedButtonImage ya no es necesario si solo hay un botón principal
+  // y ese botón no cambia con el idioma. Si el botón principal SÍ cambia, necesitarás esta lógica.
+  // Por ahora, lo comento.
+  /*
   String _getLocalizedButtonImage(String buttonNameBase, String languageCode) {
     String folder = "assets/images/Botones";
     Map<String, Map<String, String>> langConfig = {

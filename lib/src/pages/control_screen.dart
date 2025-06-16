@@ -15,7 +15,7 @@ class ControlScreen extends StatefulWidget {
   final ControlController? controller;
 
   const ControlScreen({Key? key, this.connectedDevice, this.controller})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<ControlScreen> createState() => _ControlScreenState();
@@ -23,41 +23,38 @@ class ControlScreen extends StatefulWidget {
 
 class _ControlScreenState extends State<ControlScreen> {
   late final ControlController _controller;
-  VoidCallback? _bondListener; // ahora nullable
+  VoidCallback? _bondListener; // Ahora nullable
 
   @override
   void initState() {
     super.initState();
-
     _controller = widget.controller ?? ControlController();
 
-    // Arrancamos el sondeo cada 1 segundo (parámetro nombrado)
+    // 1) Arrancamos el sondeo cada 1 segundo
     context.read<EstadoSistemaController>().startPolling(
-       const Duration(seconds: 1),
+      const Duration(seconds: 1),
     );
 
     if (widget.connectedDevice != null) {
-      // 1) Configuramos el dispositivo BLE para usarlo
+      // 2) Configuramos BLE
       _controller.setDevice(widget.connectedDevice!);
-
-      // 2) Registramos como “bond” para monitorizar el emparejamiento
       _controller.setDeviceBond(widget.connectedDevice!);
 
-      // 3) Listener: si pierde el emparejamiento, volvemos a configuración
+      // 3) Listener: si pierde bond, volvemos a configuración
       _bondListener = () {
         if (_controller.shouldSetup.value) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Navigator.pushNamedAndRemoveUntil(
               context,
               'configuracionBluetooth',
-                  (_) => false,
+              (_) => false,
             );
           });
         }
       };
       _controller.shouldSetup.addListener(_bondListener!);
 
-      // 4) Empezamos a pedir estado de batería periódicamente
+      // 4) Comenzamos a pedir estado de batería periódicamente
       _controller.startBatteryStatusMonitoring();
       _controller.requestSystemStatus();
     }
@@ -65,7 +62,6 @@ class _ControlScreenState extends State<ControlScreen> {
 
   @override
   void dispose() {
-    // Solo quitamos el listener si fue registrado
     if (_bondListener != null) {
       _controller.shouldSetup.removeListener(_bondListener!);
       _bondListener = null;
@@ -75,13 +71,11 @@ class _ControlScreenState extends State<ControlScreen> {
     super.dispose();
   }
 
-  /// Selecciona la imagen del botón según el idioma actual
-  String _localizedButton(String name) {
-    final code = Provider.of<IdiomaController>(context, listen: false)
-        .locale
-        .languageCode;
+  /// Dado el “name” del botón (sin extensión) y el código de idioma,
+  /// devuelve la ruta correcta dentro de assets/images/Botones/...
+  String _localizedButton(String name, String languageCode) {
     const folder = "assets/images/Botones";
-    switch (code) {
+    switch (languageCode) {
       case "es":
         return "$folder/Espanol/$name.png";
       case "en":
@@ -115,18 +109,20 @@ class _ControlScreenState extends State<ControlScreen> {
             child: HeaderMenuWidget(),
           ),
 
-          // 2) Icono BLE On/Off según esté emparejado
+          // 2) Icono BLE On/Off
           Positioned(
             top: screenH * 0.22,
             child: ValueListenableBuilder<bool>(
               valueListenable: _controller.isBleConnected,
-              builder: (_, conectado, __) => Image.asset(
-                conectado
-                    ? "assets/img/iconos/iconoBtOn.png"
-                    : "assets/img/iconos/iconoBtOff.png",
-                width: 60,
-                height: 60,
-              ),
+              builder: (_, conectado, __) {
+                return Image.asset(
+                  conectado
+                      ? "assets/img/iconos/iconoBtOn.png"
+                      : "assets/img/iconos/iconoBtOff.png",
+                  width: 60,
+                  height: 60,
+                );
+              },
             ),
           ),
 
@@ -141,7 +137,7 @@ class _ControlScreenState extends State<ControlScreen> {
             ),
           ),
 
-          // 4) Teclado PW (habilitado solo si sigue emparejado)
+          // 4) Teclado PW (habilitado solo si BLE sigue emparejado)
           Positioned(
             top: screenH * 0.42,
             child: TecladoPW(
@@ -152,36 +148,42 @@ class _ControlScreenState extends State<ControlScreen> {
             ),
           ),
 
-          // 5) Botón Conectar / Desconectar dinámico
+          // 5) Botón Conectar / Desconectar dinámico, dependiente del idioma
           Positioned(
             bottom: 75,
             child: ValueListenableBuilder<bool>(
               valueListenable: _controller.isBleConnected,
-              builder: (_, conectado, __) => GestureDetector(
-                onTap: () async {
-                  if (conectado) {
-                    // Solo corta la conexión BLE; sigue en esta pantalla
-                    await _controller.disconnectDevice();
-                  } else {
-                    // Intenta conexión manual BLE
-                    final ok =
-                    await _controller.conectarManualBLE(context);
-                    if (ok && widget.connectedDevice != null) {
-                      // Reiniciamos bond-monitor y batería tras reconectar
-                      _controller.setDeviceBond(
-                          widget.connectedDevice!);
-                      _controller.startBatteryStatusMonitoring();
-                      _controller.requestSystemStatus();
-                    }
-                  }
-                },
-                child: Image.asset(
-                  _localizedButton(
-                    conectado ? "Desconectar" : "Conectar",
-                  ),
-                  width: screenW * 0.75,
-                ),
-              ),
+              builder: (_, conectado, __) {
+                // Envolver la sección de la imagen en Consumer<IdiomaController>
+                return Consumer<IdiomaController>(
+                  builder: (context, idiomaController, _) {
+                    final code = idiomaController.locale.languageCode;
+                    // Elegimos el nombre base de la imagen (sin extensión ni sufijo de idioma):
+                    final nombre = conectado ? "Desconectar" : "Conectar";
+                    final assetPath = _localizedButton(nombre, code);
+
+                    return GestureDetector(
+                      onTap: () async {
+                        if (conectado) {
+                          // Desconectamos BLE
+                          await _controller.disconnectDevice();
+                        } else {
+                          // Intentamos conectar manual
+                          final ok = await _controller.conectarManualBLE(
+                            context,
+                          );
+                          if (ok && widget.connectedDevice != null) {
+                            _controller.setDeviceBond(widget.connectedDevice!);
+                            _controller.startBatteryStatusMonitoring();
+                            _controller.requestSystemStatus();
+                          }
+                        }
+                      },
+                      child: Image.asset(assetPath, width: screenW * 0.75),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],

@@ -11,6 +11,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pw/src/Controller/pttController.dart';
+import 'dart:io' show Platform;
 
 /// --NIVEL DE BATERIA-- ///
 enum BatteryLevel {
@@ -76,6 +77,7 @@ class ControlController extends ChangeNotifier {
   // ────────────────────────────────────────────────────────────────
   final FlutterSoundRecorder _recorder =
       FlutterSoundRecorder(); // Recorder para PTT
+  bool _isRecorderInitialized = false; // Estado de inicialización del recorder
 
   StreamSubscription<Uint8List>?
   _micSub; // Subscripción al stream de audio del mic
@@ -84,11 +86,15 @@ class ControlController extends ChangeNotifier {
       StreamController<Uint8List>.broadcast(); // Controlador de audio
 
   bool isPTTActive = false; // Estado de PTT
-  bool _isRecorderInitialized = false; // Estado de inicialización del recorder
 
-  final MethodChannel _channel = const MethodChannel(
+  final MethodChannel _audioTrackChannel = const MethodChannel(
     'bygelectronics.pw/audio_track',
   );
+
+  static const MethodChannel _audioSessionChannel = MethodChannel(
+    'bygelectronics.pw/audio_session',
+  );
+
   // ────────────────────────────────────────────────────────────────
   // 🚨 Sirena y luces
   // ────────────────────────────────────────────────────────────────
@@ -139,6 +145,7 @@ class ControlController extends ChangeNotifier {
 
   /// Verifica si el dispositivo Classic aún está emparejado (presente en la lista bond).
   Future<void> _checkStillBonded() async {
+    if (!Platform.isAndroid) return;
     if (_bondedMac == null) {
       _fireSetup(); // Si no hay MAC registrada, redirige a configuración
       return;
@@ -279,44 +286,28 @@ class ControlController extends ChangeNotifier {
 
   // Envía un comando al dispositivo BLE en formato ASCII hexadecimal usando la característica de escritura;
   // valida conexión, convierte los bytes, envía y registra el resultado.
+
+  /// Método que envía una lista de bytes como ASCII por la característica BLE.
   Future<void> sendCommand(List<int> command) async {
     if (targetCharacteristic == null || connectedDevice == null) {
-      debugPrint(
-        "No hay dispositivo o característica BLE disponible.",
-      ); // ⚠️ Sin dispositivo o característica: no se puede enviar
+      debugPrint("No hay dispositivo o característica BLE disponible.");
       return;
     }
 
-    // Convierte la lista de bytes [int] en una cadena hexadecimal tipo 'AA14184430F9FF'
     String asciiCommand =
         command
-            .map(
-              (e) => e.toRadixString(16).padLeft(2, '0'),
-            ) // Cada byte → string hex con 2 dígitos
+            .map((e) => e.toRadixString(16).padLeft(2, '0'))
             .join('')
-            .toUpperCase(); // En mayúsculas
-
-    // Transforma el string hexadecimal en código ASCII (A → 65, F → 70, etc.)
+            .toUpperCase();
     List<int> asciiBytes = asciiCommand.codeUnits;
 
     try {
-      await targetCharacteristic!.write(
-        asciiBytes,
-        withoutResponse: false,
-      ); // Escribe en la característica BLE
-
-      debugPrint(
-        "Comando ASCII enviado a ${connectedDevice!.platformName}: $asciiCommand", // Muestra el string enviado
-      );
-
-      // ✅ Si deseas que cada comando refresque el estado del sistema, descomenta:
-      // requestSystemStatus();
+      await targetCharacteristic!.write(asciiBytes, withoutResponse: false);
+      debugPrint("Comando ASCII enviado: $asciiCommand");
     } catch (e) {
-      debugPrint(
-        "Error enviando comando ASCII a ${connectedDevice!.platformName}: $e", // Muestra error en caso de fallo
-      );
+      debugPrint("Error enviando comando ASCII: $e");
     }
-  } // FIN sendCommand
+  }
 
   /// ==========================//
   /// CALCULO DE CRC / MOD-BUS //
@@ -595,11 +586,14 @@ class ControlController extends ChangeNotifier {
       return;
     }
 
-    classicConnection = await btClassic.BluetoothConnection.toAddress(mac);
-    connectedClassicDevice = dispositivoEmparejado;
+    if (Platform.isAndroid) {
+      classicConnection = await btClassic.BluetoothConnection.toAddress(mac);
+      connectedClassicDevice = dispositivoEmparejado;
+    }
   }
 
   Future<btClassic.BluetoothDevice?> buscarEnEmparejados(String mac) async {
+    if (!Platform.isAndroid) return null;
     try {
       final bondedDevices =
           await btClassic.FlutterBluetoothSerial.instance.getBondedDevices();
@@ -618,6 +612,8 @@ class ControlController extends ChangeNotifier {
       return false;
     }
 
+    if (!Platform.isAndroid) return false;
+
     try {
       // 1) Buscamos en la lista de dispositivos emparejados (bonded) por la MAC almacenada
       final bondedDevices =
@@ -628,10 +624,12 @@ class ControlController extends ChangeNotifier {
       );
 
       // 2) Intentamos abrir conexión Classic
-      classicConnection = await btClassic.BluetoothConnection.toAddress(
-        _bondedMac!,
-      );
-      connectedClassicDevice = device;
+      if (Platform.isAndroid) {
+        classicConnection = await btClassic.BluetoothConnection.toAddress(
+          _bondedMac!,
+        );
+        connectedClassicDevice = device;
+      }
       debugPrint("✅ Classic reenlazado automáticamente a $_bondedMac");
       return true;
     } catch (e) {
@@ -643,110 +641,182 @@ class ControlController extends ChangeNotifier {
   final StreamController<Uint8List> _audioStreamController =
       StreamController<Uint8List>();
 
+  /// ====================
+  ///   Toggle PTT (App)
+  /// ====================
   Future<void> togglePTT() async {
-    const List<int> pttFrame = <int>[0xAA, 0x14, 0x11, 0x44, 0x32, 0x29, 0xFF];
+    // 1) Definimos las dos tramas: PTT ON y PTT OFF
+    const List<int> pttOnFrame = <int>[
+      0xAA, // header
+      0x14, // comando general
+      0x11, // función “PTT ON”
+      0x44, // payload byte1
+      0x32, // payload byte2 alta CRC
+      0x29, // payload byte3 baja CRC
+      0xFF, // footer
+    ];
+    const List<int> pttOffFrame = <int>[
+      0xAA, // header
+      0x14, // comando general
+      0x30, // función “PTT OFF”
+      0x44, // payload byte1
+      0x4A, // payload byte2 alta CRC
+      0x79, // payload byte3 baja CRC
+      0xFF, // footer
+    ];
 
-    // 4.1) Pedir permiso de micrófono
-    final micStatus = await Permission.microphone.request();
-    if (!micStatus.isGranted) {
-      debugPrint("❌ Permiso de micrófono denegado.");
+    // 2) Pedimos permiso de micrófono
+    if (!await Permission.microphone.request().isGranted) return;
+
+    // 3) Si vamos a encender PTT App pero el PTT físico (T04) ya está activo, bloqueamos:
+    if (!isPTTActive && _pttT04Active) {
+      debugPrint(
+        "❌ No puedes activar PTT de la App mientras PTT T04 está activo.",
+      );
       return;
     }
 
-    // 4.2) Decidir si uso BLE o Classic
-    if (!isBleConnected.value) {
-      // BLE NO está conectado, pruebo Classic
-      if (classicConnection != null && classicConnection!.isConnected) {
-        debugPrint("✅ Usaremos Classic porque BLE NO está conectado.");
-      } else {
-        // Intento reconectar automáticamente
-        final reconNece = await tryReconnectClassic();
-        if (!reconNece) {
-          debugPrint(
-            "❌ No hay dispositivo Classic conectado. "
-            "Por favor, conéctalo manualmente antes de usar PTT.",
-          );
-          return;
+    // 4) Ramo iOS vs Android
+    if (Platform.isIOS) {
+      // ─────────────── iOS ───────────────
+      // 4.1) Configuramos AVAudioSession para Bluetooth/HFP
+      try {
+        await _audioSessionChannel.invokeMethod('configureForBluetooth');
+        debugPrint("✅ AVAudioSession iOS configurado para Bluetooth/HFP.");
+      } catch (e) {
+        debugPrint("❌ Error configurando AVAudioSession en iOS: $e");
+        // Continuamos, aunque sin ruteo BLE/HFP quizá no funcione
+      }
+
+      if (!isPTTActive) {
+        // ─── PTT ON en iOS ───────────────────
+        debugPrint("▶️ Iniciando PTT (iOS)...");
+
+        // 4.2) Enviar comando PTT ON por BLE
+        await sendCommand(pttOnFrame);
+        debugPrint(
+          "✅ [ControlController] PTT ON (App) enviado (iOS): "
+          "${pttOnFrame.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}",
+        );
+
+        // 4.3) Abrir recorder y suscribir al stream (si no está inicializado)
+        if (!_isRecorderInitialized) {
+          await _recorder.openRecorder();
+          _isRecorderInitialized = true;
+
+          _micSub = _micController.stream.listen((buffer) async {
+            // En iOS, al tener AVAudioSession con allowBluetooth,
+            // el AudioTrack nativo se encargará de enviar el audio al periférico emparejado.
+            try {
+              await _audioTrackChannel.invokeMethod('writeAudio', buffer);
+              debugPrint("🔊 Audio enviado a AudioTrack (iOS).");
+            } catch (e) {
+              debugPrint("❌ Error enviando audio a AudioTrack: $e");
+            }
+          });
         }
-        debugPrint("✅ Classic conectado tras reconectar.");
+
+        // 4.4) Iniciar canal nativo de audio (AudioTrack) en iOS
+        try {
+          await _audioTrackChannel.invokeMethod('startAudioTrack');
+          debugPrint("🎵 Canal de audio nativo iniciado (iOS).");
+        } catch (e) {
+          debugPrint("❌ No se pudo iniciar AudioTrack en iOS: $e");
+        }
+
+        // 4.5) Iniciar grabación
+        await _recorder.startRecorder(
+          codec: Codec.pcm16,
+          sampleRate: 8000,
+          numChannels: 1,
+          audioSource: AudioSource.microphone,
+          toStream: _micController.sink,
+        );
+        debugPrint("🎙️ Grabación de PTT iniciada (iOS).");
+
+        isPTTActive = true;
+      } else {
+        // ─── PTT OFF en iOS ──────────────────
+        debugPrint("⏹️ Deteniendo PTT (iOS)...");
+
+        // 4.6) Detener grabación si estaba activa
+        if (_recorder.isRecording) {
+          await _recorder.stopRecorder();
+          debugPrint("⏹️ Grabación detenida (iOS).");
+        }
+
+        // 4.7) Detener canal nativo (AudioTrack)
+        try {
+          await _audioTrackChannel.invokeMethod('stopAudioTrack');
+          debugPrint("🔇 Canal de audio nativo detenido (iOS).");
+        } catch (e) {
+          debugPrint("❌ No se pudo detener AudioTrack en iOS: $e");
+        }
+
+        // 4.8) Enviar comando PTT OFF por BLE
+        await sendCommand(pttOffFrame);
+        debugPrint(
+          "✅ [ControlController] PTT OFF (App) enviado (iOS): "
+          "${pttOffFrame.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}",
+        );
+
+        isPTTActive = false;
       }
     } else {
-      debugPrint("✅ Usaremos BLE porque BLE está conectado.");
+      // ─────────────── Android ───────────────
+      if (!isPTTActive) {
+        // ─── PTT ON en Android ─────────────────
+        await sendCommand(pttOnFrame);
+        debugPrint("✅ [ControlController] PTT ON (App) enviado (Android).");
+
+        if (!_isRecorderInitialized) {
+          await _recorder.openRecorder();
+          _isRecorderInitialized = true;
+
+          _micSub = _micController.stream.listen((buffer) async {
+            // Enviar por Bluetooth Classic si está conectado
+            if (classicConnection != null && classicConnection!.isConnected) {
+              classicConnection!.output.add(buffer);
+              await classicConnection!.output.allSent;
+            }
+            // Enviar a la bocina del celular
+            try {
+              await _audioTrackChannel.invokeMethod('writeAudio', buffer);
+            } catch (e) {
+              debugPrint("❌ Error enviando a AudioTrack: $e");
+            }
+          });
+        }
+
+        // Iniciar canal nativo y grabación en Android
+        await _audioTrackChannel.invokeMethod('startAudioTrack');
+        await _recorder.startRecorder(
+          codec: Codec.pcm16,
+          sampleRate: 8000,
+          numChannels: 1,
+          audioSource: AudioSource.microphone,
+          toStream: _micController.sink,
+        );
+
+        isPTTActive = true;
+        debugPrint("🎤 [ControlController] Grabación PTT iniciada (Android).");
+      } else {
+        // ─── PTT OFF en Android ──────────────────
+        if (_recorder.isRecording) {
+          await _recorder.stopRecorder();
+          debugPrint(
+            "🛑 [ControlController] Grabación PTT detenida (Android).",
+          );
+        }
+        await _audioTrackChannel.invokeMethod('stopAudioTrack');
+        await sendCommand(pttOffFrame);
+        debugPrint("✅ [ControlController] PTT OFF (App) enviado (Android).");
+        isPTTActive = false;
+      }
     }
 
-    // 4.3) Alternar estado de PTT
-    if (!isPTTActive) {
-      debugPrint("▶️ Iniciando PTT...");
-
-      // ─ Enviar comando para ACTIVAR PTT en hardware ─
-      await sendCommand(pttFrame);
-
-      // ─ Iniciar grabador si aún no está inicializado ─
-      if (!_isRecorderInitialized) {
-        await _recorder.openRecorder();
-        _isRecorderInitialized = true;
-
-        // Cada vez que el micrófono arroje un buffer, lo reenviamos:
-        _micSub = _micController.stream.listen((buffer) async {
-          //  a) Enviar por Classic si está conectado
-          if (classicConnection != null && classicConnection!.isConnected) {
-            classicConnection!.output.add(buffer);
-            await classicConnection!.output.allSent;
-            debugPrint(
-              "🔊 Audio enviado por Classic (${buffer.length} bytes).",
-            );
-          }
-          //  b) Enviar a bocina del celular
-          try {
-            await _channel.invokeMethod('writeAudio', buffer);
-          } catch (e) {
-            debugPrint("❌ Error enviando audio a AudioTrack: $e");
-          }
-        });
-      }
-
-      // ─ Iniciar canal de audio nativo (AudioTrack) ─
-      try {
-        await _channel.invokeMethod('startAudioTrack');
-        debugPrint("🎵 Canal de audio nativo iniciado.");
-      } catch (e) {
-        debugPrint("❌ No pudo iniciar canal de audio nativo: $e");
-      }
-
-      // ─ Arrancar grabación desde micrófono ─
-      await _recorder.startRecorder(
-        codec: Codec.pcm16,
-        sampleRate: 8000,
-        numChannels: 1,
-        audioSource: AudioSource.microphone,
-        toStream: _micController.sink,
-      );
-      debugPrint("🎙️ Grabación de PTT iniciada.");
-
-      isPTTActive = true;
-    } else {
-      debugPrint("⏹️ Deteniendo PTT...");
-
-      // ─ Detener grabación ─
-      if (_recorder.isRecording) {
-        await _recorder.stopRecorder();
-        debugPrint("⏹️ Grabación detenida.");
-      }
-
-      // ─ Detener canal nativo ─
-      try {
-        await _channel.invokeMethod('stopAudioTrack');
-        debugPrint("🔇 Canal de audio nativo detenido.");
-      } catch (e) {
-        debugPrint("❌ No pudo detener canal de audio nativo: $e");
-      }
-
-      // ─ Enviar mismo frame para DESACTIVAR PTT en hardware ─
-      await sendCommand(pttFrame);
-      debugPrint("🛑 PTT desactivado en hardware.");
-
-      isPTTActive = false;
-    }
+    // 5) Tras mandar ON u OFF, pedimos el estado completo al módulo
+    requestSystemStatus();
 
     notifyListeners();
   }
@@ -761,6 +831,8 @@ class ControlController extends ChangeNotifier {
   }
 
   Future<void> _deactivateBluetoothClassic() async {
+    if (!Platform.isAndroid) return;
+
     try {
       if (classicConnection != null && classicConnection!.isConnected) {
         await classicConnection!.close();
@@ -774,11 +846,11 @@ class ControlController extends ChangeNotifier {
   }
 
   ///===ESTADO DE SISTEMA===
-  // Solicita el estado del sistema construyendo y enviando el frame [0xAA, 0x14, 0x18, 0x44, 0x30, 0xF9, 0xFF] por BLE.
+  /// Solicita al módulo que envíe el estado completo (incluido PTT físico)
   void requestSystemStatus() {
     List<int> frame = [0xAA, 0x14, 0x18, 0x44];
-    frame.addAll([0x30, 0xF9]); // ✅ CRC correcto
-    frame.add(0xFF); // Fin de trama
+    frame.addAll([0x30, 0xF9]); // CRC correcto
+    frame.add(0xFF);
     sendCommand(frame);
   }
 
@@ -976,7 +1048,7 @@ class ControlController extends ChangeNotifier {
 
         if (writeChar == null) {
           debugPrint("❌ No se encontró característica ff01.");
-          Navigator.pushReplacementNamed(context, 'splash_denegate');
+          Navigator.pushReplacementNamed(context, '/splash_denegate');
           return false;
         }
 
@@ -987,18 +1059,18 @@ class ControlController extends ChangeNotifier {
         // 6. Mostrar splash de confirmación
         Navigator.pushReplacementNamed(
           context,
-          'splash_confirmacion',
+          '/splash_confirmacion',
           arguments: {'device': device, 'controller': this},
         );
         return true;
       } else {
-        Navigator.pushReplacementNamed(context, 'splash_denegate');
+        Navigator.pushReplacementNamed(context, '/splash_denegate');
         return false;
       }
     } catch (e) {
       debugPrint("❌ Error en conectarManualBLE: $e");
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, 'splash_denegate');
+        Navigator.pushReplacementNamed(context, '/splash_denegate');
       }
       return false;
     }

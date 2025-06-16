@@ -40,7 +40,8 @@ class TextSizeScreen extends StatelessWidget {
                 children: [
                   // Título centrado
                   Text(
-                    AppLocalizations.of(context)?.translate('text_size') ?? 'Tamaño de Texto',
+                    AppLocalizations.of(context)?.translate('text_size') ??
+                        'Tamaño de Texto',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 25,
@@ -56,7 +57,10 @@ class TextSizeScreen extends StatelessWidget {
 
                   // Instrucción centrada
                   Text(
-                    AppLocalizations.of(context)?.translate('adjust_text_size') ?? 'Ajusta el tamaño del texto:',
+                    AppLocalizations.of(
+                          context,
+                        )?.translate('adjust_text_size') ??
+                        'Ajusta el tamaño del texto:',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18 * textSizeController.textScaleFactor,
@@ -83,16 +87,20 @@ class TextSizeScreen extends StatelessWidget {
                             activeTrackColor: theme.colorScheme.primary,
                             inactiveTrackColor: theme.dividerColor,
                             thumbColor: theme.colorScheme.primary,
-                            overlayColor: theme.colorScheme.primary.withAlpha(50),
+                            overlayColor: theme.colorScheme.primary.withAlpha(
+                              50,
+                            ),
                           ),
                           child: Slider(
                             value: textSizeController.textScaleFactor,
                             min: 0.8,
                             max: 1.5,
                             divisions: 7,
-                            label: '${(textSizeController.textScaleFactor * 100).toInt()}%',
-                            onChanged: (newSize) =>
-                                textSizeController.cambiarTamanioTexto(newSize),
+                            label:
+                                '${(textSizeController.textScaleFactor * 100).toInt()}%',
+                            onChanged:
+                                (newSize) => textSizeController
+                                    .cambiarTamanioTexto(newSize),
                           ),
                         ),
                       ),
@@ -111,7 +119,8 @@ class TextSizeScreen extends StatelessWidget {
 
                   // Vista previa
                   Text(
-                    AppLocalizations.of(context)?.translate('preview_text') ?? 'Texto de ejemplo',
+                    AppLocalizations.of(context)?.translate('preview_text') ??
+                        'Texto de ejemplo',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18 * textSizeController.textScaleFactor,

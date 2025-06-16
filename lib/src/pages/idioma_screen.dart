@@ -1,41 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../widgets/TecladoPinWidget.dart';
-import '../../widgets/drawerMenuWidget.dart';
 import '../../widgets/header_menu_widget.dart';
-import '../../widgets/header_widget.dart';
-import '../Controller/ConfiguracionBluetoothController.dart';
+import '../../widgets/drawerMenuWidget.dart';
+import '../Controller/idioma_controller.dart';
 
 class IdiomaScreen extends StatelessWidget {
-  const IdiomaScreen({Key? key}) : super(key: key);
+  const IdiomaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ConfiguracionBluetoothController(),
-      child: const _IdiomaScreen(),
-    );
-  }
-}
-
-class _IdiomaScreen extends StatelessWidget {
-  const _IdiomaScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = Provider.of<ConfiguracionBluetoothController>(context);
-    final theme = Theme.of(context);
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       drawer: const AppDrawer(),
-      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          const Positioned(top: 0, left: 0, right: 0, child: HeaderMenuWidget()),
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: HeaderMenuWidget(),
+          ),
           Positioned(
-            top: screenHeight * 0.18,
+            top: MediaQuery.of(context).size.height * 0.18,
             left: 27,
             right: 27,
             bottom: 0,
@@ -44,43 +30,49 @@ class _IdiomaScreen extends StatelessWidget {
               children: [
                 Center(
                   child: Text(
-                    'Idioma',
-                    style: TextStyle(
+                    'Idioma', // Podrías también localizar “Idioma” si quieres
+                    style: const TextStyle(
                       fontFamily: 'PWSeriesFont',
                       fontSize: 25,
                       fontWeight: FontWeight.bold,
-                      color: theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
-                Divider(thickness: 2, color: theme.dividerColor),
                 const SizedBox(height: 15),
 
+                // ► Español
                 _idiomaTile(
                   context,
                   image: 'assets/img/iconos/espanol.png',
                   label: 'Español',
+                  idiomaCode: 'es',
                 ),
                 const SizedBox(height: 20),
 
+                // ► Francés
                 _idiomaTile(
                   context,
                   image: 'assets/img/iconos/frances.png',
-                  label: 'Francés',
+                  label: 'Français',
+                  idiomaCode: 'fr',
                 ),
                 const SizedBox(height: 20),
 
+                // ► Inglés
                 _idiomaTile(
                   context,
                   image: 'assets/img/iconos/ingles.png',
-                  label: 'Inglés',
+                  label: 'English',
+                  idiomaCode: 'en',
                 ),
                 const SizedBox(height: 20),
 
+                // ► Portugués
                 _idiomaTile(
                   context,
                   image: 'assets/img/iconos/portugues.png',
-                  label: 'Portugués',
+                  label: 'Português',
+                  idiomaCode: 'pt',
                 ),
               ],
             ),
@@ -90,26 +82,27 @@ class _IdiomaScreen extends StatelessWidget {
     );
   }
 
-  Widget _idiomaTile(BuildContext context, {required String image, required String label}) {
-    final theme = Theme.of(context);
+  Widget _idiomaTile(
+    BuildContext context, {
+    required String image,
+    required String label,
+    required String idiomaCode,
+  }) {
     return ListTile(
-      leading: Image.asset(
-        image,
-        width: 50,
-        height: 50,
-      ),
+      leading: Image.asset(image, width: 50, height: 50),
       title: Text(
         label,
-        style: TextStyle(
-          fontSize: 21,
-          fontFamily: 'Roboto-bold',
-          fontWeight: FontWeight.bold,
-          color: theme.textTheme.bodyLarge?.color,
-        ),
+        style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
       ),
       onTap: () {
-        Navigator.of(context).pop();
-        Navigator.pushNamed(context, 'configAvanzada');
+        // 1) Cambiamos el idioma en nuestro IdiomaController
+        Provider.of<IdiomaController>(
+          context,
+          listen: false,
+        ).cambiarIdioma(idiomaCode);
+
+        // 2) Volvemos a la pantalla de Control (o la que necesites)
+        Navigator.pushNamedAndRemoveUntil(context, '/control', (_) => false);
       },
     );
   }

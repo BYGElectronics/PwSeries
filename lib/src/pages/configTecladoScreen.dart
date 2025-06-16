@@ -6,7 +6,8 @@ import '../../widgets/header_menu_widget.dart';
 import '../Controller/control_controller.dart';
 
 class ConfigTecladoScreen extends StatelessWidget {
-  const ConfigTecladoScreen({Key? key, required this.controller}) : super(key: key);
+  const ConfigTecladoScreen({Key? key, required this.controller})
+    : super(key: key);
   final ControlController controller;
 
   @override
@@ -22,9 +23,7 @@ class _ConfigTecladoView extends StatelessWidget {
   const _ConfigTecladoView({Key? key}) : super(key: key);
 
   void _showMessage(BuildContext ctx, String msg) {
-    ScaffoldMessenger.of(ctx).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -40,12 +39,16 @@ class _ConfigTecladoView extends StatelessWidget {
       body: Stack(
         children: [
           const Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: HeaderMenuWidget(),
           ),
           Positioned(
             top: screenHeight * 0.18,
-            left: 27, right: 27, bottom: 0,
+            left: 27,
+            right: 27,
+            bottom: 0,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -121,12 +124,12 @@ class _ConfigTecladoView extends StatelessWidget {
   }
 
   Widget _customTile(
-      BuildContext context, {
-        required bool enabled,
-        required String image,
-        required String label,
-        required VoidCallback onTap,
-      }) {
+    BuildContext context, {
+    required bool enabled,
+    required String image,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     final theme = Theme.of(context);
     return ListTile(
       leading: Image.asset(image, width: 80, height: 80),

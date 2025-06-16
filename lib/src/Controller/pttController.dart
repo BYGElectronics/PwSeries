@@ -4,10 +4,12 @@ import 'dart:typed_data';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'dart:io' show Platform;
 
 class PttAudioController {
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
-  final StreamController<Uint8List> _audioStreamController = StreamController<Uint8List>();
+  final StreamController<Uint8List> _audioStreamController =
+      StreamController<Uint8List>();
 
   bool _isRecorderInitialized = false;
   BluetoothConnection? classicConnection;
@@ -61,6 +63,8 @@ class PttAudioController {
 
   /// Permite inyectar la conexión Bluetooth Classic desde fuera
   void setClassicConnection(BluetoothConnection connection) {
-    classicConnection = connection;
+    if (Platform.isAndroid) {
+      classicConnection = connection;
+    }
   }
 }

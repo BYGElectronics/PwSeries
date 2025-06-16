@@ -46,9 +46,24 @@ class AppLocalizations {
 
       "horn_change_msg": "Cambiando Tono Horn",
       "switch_lights_aux_mode": "Cambiando a modo luces / Auxiliar",
-      "sync_lights_with_siren": "Sincronizando / Desincronizando Luces con Sirenas",
-      "autoajuste_pa_msg": "Esperar 30 segundos para el autoajuste PA"
+      "sync_lights_with_siren":
+          "Sincronizando / Desincronizando Luces con Sirenas",
+      "autoajuste_pa_msg": "Esperar 30 segundos para el autoajuste PA",
 
+      "acercaDe": "Acerca De",
+      "desarrollado_por": "Desarrollado Por:",
+      "version": "Versión",
+      "whatsapp_error": "No se pudo abrir WhatsApp",
+      "contactanos_button_image": "Contactanos_1.png",
+
+      'config_avanzada': 'Configuración Avanzada',
+      'config_teclado': 'Configuración Teclado',
+      'conexion_pw': 'Conexión Pw',
+
+      'pw_series': 'PW series',
+      'configuracion': 'Configuración',
+      'idiomas': 'Idiomas',
+      'acerca_de': 'Acerca de',
     },
     'en': {
       'title': 'Welcome',
@@ -81,16 +96,25 @@ class AppLocalizations {
       "horn_change_msg": "Changing Horn Tone",
       "switch_lights_aux_mode": "Switching to lights / auxiliary mode",
       "sync_lights_with_siren": "Syncing / Unsyncing Lights with Sirens",
-      "autoajuste_pa_msg": "Waiting 30 seconds for PA auto-adjustment"
+      "autoajuste_pa_msg": "Waiting 30 seconds for PA auto-adjustment",
+      'pw_series': 'PW series',
+      "acercaDe": "About",
+      "desarrollado_por": "Developed By:",
+      "version": "Version",
+      "whatsapp_error": "Could not open WhatsApp",
+      "contactanos_button_image": "ContactUs_1.png",
 
-
-},
+      'config_avanzada': 'Advanced Settings',
+      'config_teclado': 'Keyboard Setup',
+      'conexion_pw': 'Pw Connection',
+    },
     'pt': {
       'title': 'Bem-vindo',
       'language': 'Linguagem',
       'settings': 'Configurações',
       'text_size': 'Tamanho do texto',
       'dark_mode': 'Modo escuro / Modo claro',
+      'pw_series': 'PW series',
       'control': 'Controle',
       'home': 'Início',
       'connect': 'Conectar',
@@ -115,10 +139,20 @@ class AppLocalizations {
 
       "horn_change_msg": "Trocando Tom da Buzina",
       "switch_lights_aux_mode": "Trocando para Modo de Luzes / Auxiliar",
-      "sync_lights_with_siren": "Sincronizando / Desincronizando Luzes com Sirenas",
-      "autoajuste_pa_msg": "Aguardando 30 segundos para o ajuste automático de PA"
+      "sync_lights_with_siren":
+          "Sincronizando / Desincronizando Luzes com Sirenas",
+      "autoajuste_pa_msg":
+          "Aguardando 30 segundos para o ajuste automático de PA",
 
+      "acercaDe": "Sobre",
+      "desarrollado_por": "Desenvolvido por:",
+      "version": "Versão",
+      "whatsapp_error": "Não foi possível abrir o WhatsApp",
+      "contactanos_button_image": "ContacteNos_1.png",
 
+      'config_avanzada': 'Configuração Avançada',
+      'config_teclado': 'Configuração do Teclado',
+      'conexion_pw': 'Conexão Pw',
     },
     'fr': {
       'title': 'Bienvenue',
@@ -128,6 +162,7 @@ class AppLocalizations {
       'dark_mode': 'Mode sombre / Mode clair',
       'control': 'Contrôle',
       'home': 'Accueil',
+      'pw_series': 'PW series',
       'connect': 'Se connecter',
       'disconnect': 'Se déconnecter',
       'access_control': 'Accéder au contrôle',
@@ -150,9 +185,20 @@ class AppLocalizations {
 
       "horn_change_msg": "Changement de la tonalité du klaxon",
       "switch_lights_aux_mode": "Changement en mode de lumières / auxiliaire",
-      "sync_lights_with_siren": "Synchronisation / Dé-synchronisation des lumières avec les sirènes",
-      "autoajuste_pa_msg": "Attente de 30 secondes pour l'ajuste automatique de PA"
+      "sync_lights_with_siren":
+          "Synchronisation / Dé-synchronisation des lumières avec les sirènes",
+      "autoajuste_pa_msg":
+          "Attente de 30 secondes pour l'ajuste automatique de PA",
 
+      "acercaDe": "À propos",
+      "desarrollado_por": "Développé par :",
+      "version": "Version",
+      "whatsapp_error": "Impossible d'ouvrir WhatsApp",
+      "contactanos_button_image": "ContactezNous_1.png",
+
+      'config_avanzada': 'Paramètres Avancés',
+      'config_teclado': 'Configuration Clavier',
+      'conexion_pw': 'Connexion Pw',
     },
   };
 

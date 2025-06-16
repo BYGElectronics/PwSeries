@@ -35,16 +35,15 @@ class _ConexionpwScreen extends StatelessWidget {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: theme.colorScheme.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
         child: Text(
           text,
           style: TextStyle(
             fontFamily: 'PWSeriesFont',
             fontSize: 18,
-            color: theme.colorScheme.onPrimary, // texto blanco o negro según fondo
+            color:
+                theme.colorScheme.onPrimary, // texto blanco o negro según fondo
           ),
         ),
       ),
@@ -89,10 +88,7 @@ class _ConexionpwScreen extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Divider(
-                    thickness: 2,
-                    color: theme.dividerColor,
-                  ),
+                  child: Divider(thickness: 2, color: theme.dividerColor),
                 ),
                 const SizedBox(height: 15),
                 Row(

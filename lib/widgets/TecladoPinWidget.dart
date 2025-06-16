@@ -4,7 +4,7 @@ class TecladoPinWidget extends StatefulWidget {
   final Function(String) onPinComplete;
 
   const TecladoPinWidget({Key? key, required this.onPinComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<TecladoPinWidget> createState() => _TecladoPinWidgetState();
@@ -67,10 +67,10 @@ class _TecladoPinWidgetState extends State<TecladoPinWidget> {
   }
 
   Widget _buildTecla(
-      String valor, {
-        bool esBorrar = false,
-        bool esConfirmar = false,
-      }) {
+    String valor, {
+    bool esBorrar = false,
+    bool esConfirmar = false,
+  }) {
     String rutaImagen;
     if (valor == 'X') {
       rutaImagen = 'assets/img/tecladoPin/botonCancel.png';

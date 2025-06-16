@@ -33,10 +33,11 @@ class HeaderMenuWidget extends StatelessWidget {
             left: 8,
             top: statusBarHeight + 4, // para separarlo del notch/status bar
             child: Builder(
-              builder: (ctx) => IconButton(
-                icon: const Icon(Icons.menu, size: 32, color: Colors.white),
-                onPressed: () => Scaffold.of(ctx).openDrawer(),
-              ),
+              builder:
+                  (ctx) => IconButton(
+                    icon: const Icon(Icons.menu, size: 32, color: Colors.white),
+                    onPressed: () => Scaffold.of(ctx).openDrawer(),
+                  ),
             ),
           ),
 

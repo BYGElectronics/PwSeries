@@ -1,7 +1,5 @@
-# Uncomment this line to define a global platform for your project
-platform :ios, '12.0'
+platform :ios, '12.0'  # 👈 Versión mínima requerida por la mayoría de plugins modernos
 
-# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -28,10 +26,11 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks!
-  use_modular_headers!
+  use_frameworks! :linkage => :static  # 👈 Recomendado para plugins con binarios
+  use_modular_headers!                 # 👈 Necesario para evitar conflictos con cabeceras Flutter
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -39,6 +38,11 @@ end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
+    flutter_additional_ios_build_settings(target)  # 👈 Agrega configuración adicional necesaria
+
+    target.build_configurations.each do |config|
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+    end
   end
 end
+

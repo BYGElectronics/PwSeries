@@ -143,8 +143,8 @@ class _ConfiguracionBluetoothView extends StatelessWidget {
                                                         .togglePinVisibility(d),
                                                 child: Image.asset(
                                                   isConnecting
-                                                      ? 'assets/img/botones/conectando.png'
-                                                      : 'assets/img/botones/Conectar.png',
+                                                      ? 'assets/images/Botones/Espanol/Conectando.png'
+                                                      : 'assets/images/Botones/Espanol/Conectar.png',
                                                   width: w * 0.4,
                                                   height: h * 0.04,
                                                   fit: BoxFit.contain,

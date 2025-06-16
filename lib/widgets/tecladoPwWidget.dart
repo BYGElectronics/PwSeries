@@ -40,12 +40,14 @@ class TecladoPW extends StatelessWidget {
 
                 // Sirena tap simple
                 _buildSimpleButton(
-                  asset: conectado
-                      ? "assets/img/teclado/sirenaOn.png"
-                      : "assets/img/teclado/sirenaOff.png",
-                  onTap: conectado
-                      ? controller.activateSiren
-                      : () => _showNoConnectionAlert(context),
+                  asset:
+                      conectado
+                          ? "assets/img/teclado/sirenaOn.png"
+                          : "assets/img/teclado/sirenaOff.png",
+                  onTap:
+                      conectado
+                          ? controller.activateSiren
+                          : () => _showNoConnectionAlert(context),
                   width: fondoWidth * 0.40,
                   height: fondoHeight * 0.40,
                 ),
@@ -53,9 +55,10 @@ class TecladoPW extends StatelessWidget {
                 // Intercomunicador tap simple
                 _buildSimpleButton(
                   asset: "assets/img/teclado/intercomunicador.png",
-                  onTap: conectado
-                      ? controller.activateInter
-                      : () => _showNoConnectionAlert(context),
+                  onTap:
+                      conectado
+                          ? controller.activateInter
+                          : () => _showNoConnectionAlert(context),
                   width: fondoWidth * 0.25,
                   height: fondoHeight * 0.35,
                 ),
@@ -80,12 +83,14 @@ class TecladoPW extends StatelessWidget {
 
                 // Auxiliar tap simple
                 _buildSimpleButton(
-                  asset: conectado
-                      ? "assets/img/teclado/auxOn.png"
-                      : "assets/img/teclado/auxOff.png",
-                  onTap: conectado
-                      ? controller.activateAux
-                      : () => _showNoConnectionAlert(context),
+                  asset:
+                      conectado
+                          ? "assets/img/teclado/auxOn.png"
+                          : "assets/img/teclado/auxOff.png",
+                  onTap:
+                      conectado
+                          ? controller.activateAux
+                          : () => _showNoConnectionAlert(context),
                   width: fondoWidth * 0.35,
                   height: fondoHeight * 0.30,
                 ),
@@ -114,16 +119,15 @@ class TecladoPW extends StatelessWidget {
     required VoidCallback onTap,
     double width = 100,
     double height = 70,
-  }) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Image.asset(
-          asset,
-          width: width,
-          height: height,
-          fit: BoxFit.contain,
-        ),
-      );
+  }) => GestureDetector(
+    onTap: onTap,
+    child: Image.asset(
+      asset,
+      width: width,
+      height: height,
+      fit: BoxFit.contain,
+    ),
+  );
 
   /// Botón “mantener apretado”: onTapDown = onPress, onTapUp/onTapCancel = onRelease
   Widget _buildPressHoldButton({

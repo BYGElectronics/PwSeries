@@ -39,7 +39,6 @@ class EstadoSistemaController extends ChangeNotifier {
     });
   }
 
-
   @override
   void dispose() {
     _pollingTimer?.cancel();
@@ -71,7 +70,7 @@ class EstadoSistemaController extends ChangeNotifier {
     if (ack != 0x55) return; // solo aceptamos ACK=0x55
 
     final functionCode = data[2];
-    final battCode     = data[3];
+    final battCode = data[3];
 
     _parseFunctionCode(functionCode);
     _parseBatteryCode(battCode);
@@ -84,28 +83,57 @@ class EstadoSistemaController extends ChangeNotifier {
     luzActiva = noFuncionesActivas = false;
 
     switch (code) {
-      case  1: sirenaT04          = true; break;
-      case  2: auxT04             = true; break;
-      case  3: hornT04            = true; break;
-      case  4: wailT04            = true; break;
-      case  5: pttT04             = true; break;
-      case  6: interT04           = true; break;
-      case  7: sirenaApp          = true; break;
-      case  8: auxApp             = true; break;
-      case  9: hornApp            = true; break;
-      case 10: wailApp            = true; break;
-      case 11: pttApp             = true; break;
-      case 12: interApp           = true; break;
-      case 13: luzActiva          = true; break;
-      case 17: noFuncionesActivas = true; break;
+      case 1:
+        sirenaT04 = true;
+        break;
+      case 2:
+        auxT04 = true;
+        break;
+      case 3:
+        hornT04 = true;
+        break;
+      case 4:
+        wailT04 = true;
+        break;
+      case 5:
+        pttT04 = true;
+        break;
+      case 6:
+        interT04 = true;
+        break;
+      case 7:
+        sirenaApp = true;
+        break;
+      case 8:
+        auxApp = true;
+        break;
+      case 9:
+        hornApp = true;
+        break;
+      case 10:
+        wailApp = true;
+        break;
+      case 11:
+        pttApp = true;
+        break;
+      case 12:
+        interApp = true;
+        break;
+      case 13:
+        luzActiva = true;
+        break;
+      case 17:
+        noFuncionesActivas = true;
+        break;
       default:
         debugPrint('[EstadoSistema] Código función desconocido: $code');
     }
 
-    debugPrint('[EstadoSistema] Función (0x${code.toRadixString(16)}) → '
-        'T04: {sirena:$sirenaT04,aux:$auxT04,horn:$hornT04,wail:$wailT04,ptt:$pttT04,inter:$interT04}, '
-        'App: {sirena:$sirenaApp,aux:$auxApp,horn:$hornApp,wail:$wailApp,ptt:$pttApp,inter:$interApp}, '
-        'luz:$luzActiva, none:$noFuncionesActivas'
+    debugPrint(
+      '[EstadoSistema] Función (0x${code.toRadixString(16)}) → '
+      'T04: {sirena:$sirenaT04,aux:$auxT04,horn:$hornT04,wail:$wailT04,ptt:$pttT04,inter:$interT04}, '
+      'App: {sirena:$sirenaApp,aux:$auxApp,horn:$hornApp,wail:$wailApp,ptt:$pttApp,inter:$interApp}, '
+      'luz:$luzActiva, none:$noFuncionesActivas',
     );
     notifyListeners();
   }
@@ -119,19 +147,20 @@ class EstadoSistemaController extends ChangeNotifier {
         batteryPercent = 100;
         break;
       case 15:
-        bateriaMedia   = true;
+        bateriaMedia = true;
         batteryPercent = 50;
         break;
       case 16:
-        bateriaBaja    = true;
+        bateriaBaja = true;
         batteryPercent = 15;
         break;
       default:
         debugPrint('[EstadoSistema] Código batería desconocido: $code');
     }
 
-    debugPrint('[EstadoSistema] Batería (0x${code.toRadixString(16)}) → '
-        'percent: $batteryPercent%, on:$carroEncendido, mid:$bateriaMedia, low:$bateriaBaja'
+    debugPrint(
+      '[EstadoSistema] Batería (0x${code.toRadixString(16)}) → '
+      'percent: $batteryPercent%, on:$carroEncendido, mid:$bateriaMedia, low:$bateriaBaja',
     );
     notifyListeners();
   }

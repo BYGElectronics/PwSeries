@@ -40,10 +40,7 @@ class _SplashConexionScreenState extends State<SplashConexionScreen>
       Navigator.pushReplacementNamed(
         context,
         '/control',
-        arguments: {
-          'device': widget.device,
-          'controller': widget.controller,
-        },
+        arguments: {'device': widget.device, 'controller': widget.controller},
       );
     });
   }
@@ -71,8 +68,9 @@ class _SplashConexionScreenState extends State<SplashConexionScreen>
                 width: 200,
                 height: 200,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
-                const Icon(Icons.error, color: Colors.red, size: 100),
+                errorBuilder:
+                    (_, __, ___) =>
+                        const Icon(Icons.error, color: Colors.red, size: 100),
               ),
               const SizedBox(height: 20),
               Text(
