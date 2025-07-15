@@ -18,14 +18,14 @@ class BluetoothClassicHandler {
     try {
       // Buscar dispositivos emparejados
       List<BluetoothDevice> devices =
-          await FlutterBluetoothSerial.instance.getBondedDevices();
+      await FlutterBluetoothSerial.instance.getBondedDevices();
 
       // Buscar el dispositivo con nombre específico
       final targetDevice = devices.firstWhere(
-        (d) => d.name == targetName,
+            (d) => d.name == targetName,
         orElse:
             () =>
-                throw Exception('🔍 Dispositivo "$targetName" no encontrado.'),
+        throw Exception('🔍 Dispositivo "$targetName" no encontrado.'),
       );
 
       // Intentar conexión

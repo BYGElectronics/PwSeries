@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 // Bluetooth Classic
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
-    as btClassic
+as btClassic
     show BluetoothConnection;
 
 // Bluetooth LE
@@ -179,9 +179,9 @@ class _SplashScreenState extends State<SplashScreen> {
           height: double.infinity,
           errorBuilder:
               (ctx, error, stack) => Container(
-                color: Colors.black,
-                child: const Icon(Icons.error, color: Colors.red, size: 50),
-              ),
+            color: Colors.black,
+            child: const Icon(Icons.error, color: Colors.red, size: 50),
+          ),
         ),
       ),
     );

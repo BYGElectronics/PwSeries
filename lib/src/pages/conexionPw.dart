@@ -1,4 +1,7 @@
+// lib/src/pages/conexionpw_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:provider/provider.dart';
 
 import '../../widgets/drawerMenuWidget.dart';
@@ -10,7 +13,7 @@ class ConexionpwScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
+    return ChangeNotifierProvider<ConfiguracionBluetoothController>(
       create: (_) => ConfiguracionBluetoothController(),
       child: const _ConexionpwScreen(),
     );
@@ -27,7 +30,6 @@ class _ConexionpwScreen extends StatelessWidget {
     required double width,
   }) {
     final theme = Theme.of(context);
-
     return SizedBox(
       width: width,
       height: 48,
@@ -42,8 +44,7 @@ class _ConexionpwScreen extends StatelessWidget {
           style: TextStyle(
             fontFamily: 'PWSeriesFont',
             fontSize: 18,
-            color:
-                theme.colorScheme.onPrimary, // texto blanco o negro según fondo
+            color: theme.colorScheme.onPrimary,
           ),
         ),
       ),
@@ -52,99 +53,146 @@ class _ConexionpwScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenH = MediaQuery.of(context).size.height;
-    final screenW = MediaQuery.of(context).size.width;
-    final theme = Theme.of(context);
+    // Forzamos textScaleFactor = 1.0
+    final mq = MediaQuery.of(context);
+    return MediaQuery(
+      data: mq.copyWith(textScaleFactor: 1.0),
+      child: Scaffold(
+        drawer: const AppDrawer(),
+        body: Stack(
+          children: [
+            // 1) Header fijo
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: HeaderMenuWidget(),
+            ),
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
-      body: Stack(
-        children: [
-          const Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: HeaderMenuWidget(),
-          ),
-          Positioned(
-            top: screenH * 0.18,
-            left: 27,
-            right: 27,
-            bottom: 0,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Text(
-                    'Conexión PW',
-                    style: TextStyle(
-                      fontFamily: 'PWSeriesFont',
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Divider(thickness: 2, color: theme.dividerColor),
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'BTPW',
+            // 2) Cuerpo dinámico
+            Positioned(
+              top: mq.size.height * 0.18,
+              left: 27,
+              right: 27,
+              bottom: 0,
+              child: Consumer<ConfiguracionBluetoothController>(
+                builder: (context, config, _) {
+                  final dispositivos = config.dispositivosEncontrados;
+
+                  // 2.1) Cabecera común
+                  final header = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Text(
+                          'Conexión PW',
+                          style: TextStyle(
+                            fontFamily: 'PWSeriesFont',
+                            fontSize: 25,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Divider(
+                        thickness: 2,
+                        color: Theme.of(context).dividerColor,
+                      ),
+                      const SizedBox(height: 15),
+                    ],
+                  );
+
+                  // 2.2) Contenido: sin dispositivos
+                  if (dispositivos.isEmpty) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        header,
+                        const SizedBox(height: 50),
+                        Center(
+                          child: Text(
+                            'No hay ningún dispositivo emparejado',
                             style: TextStyle(
                               fontFamily: 'PWSeriesFont',
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                              color: theme.textTheme.bodyLarge?.color,
+                              fontSize: 18,
+                              color:
+                                  Theme.of(context).textTheme.bodyMedium?.color,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'EC:64:C9:41:C3:BA',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.hintColor,
+                        ),
+                        const Spacer(),
+                      ],
+                    );
+                  }
+
+                  // 2.3) Contenido: sí hay al menos uno, tomamos el primero
+                  final device = dispositivos.first;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      header,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Nombre y MAC
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  device.name,
+                                  style: TextStyle(
+                                    fontFamily: 'PWSeriesFont',
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  device.address,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.copyWith(
+                                    color: Theme.of(context).hintColor,
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Botón Olvidar PW
+                          _actionButton(
+                            context: context,
+                            text: 'Olvidar PW',
+                            width: mq.size.width * 0.4,
+                            onPressed: () async {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/home',
+                                (route) => false,
+                              );
+
+                              final removed = await FlutterBluetoothSerial
+                                  .instance
+                                  .removeDeviceBondWithAddress(device.address);
+                            },
                           ),
                         ],
                       ),
-                    ),
-                    Column(
-                      children: [
-                        _actionButton(
-                          context: context,
-                          text: 'Olvidar PW',
-                          width: screenW * 0.4,
-                          onPressed: () {
-                            // lógica olvidar
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        _actionButton(
-                          context: context,
-                          text: 'Desconectar',
-                          width: screenW * 0.4,
-                          onPressed: () {
-                            // lógica desconectar
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const Spacer(),
-              ],
+                      const Spacer(),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

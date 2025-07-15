@@ -576,6 +576,7 @@ class ControlController extends ChangeNotifier {
         }
       });
     }
+
   }
 
   Future<void> conectarClassicSiRecuerda(String mac) async {

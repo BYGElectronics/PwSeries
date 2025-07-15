@@ -127,42 +127,47 @@ class _MyAppState extends State<MyApp> {
       themeMode: themeController.themeMode,
 
       // =============================
+      //   FORZAR ESCALA DE TEXTO
+      // =============================
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(textScaleFactor: 1.0),
+          child: child!,
+        );
+      },
+
+      // =============================
       //        RUTAS / ROUTES
       // =============================
       initialRoute: "/",
       routes: {
         "/": (context) => const SplashScreen(),
-
-        "/home":
-            (context) => HomeScreen(
-              toggleTheme: () => themeController.toggleDarkMode(true),
-              themeMode: themeController.themeMode,
-            ),
-
+        "/home": (context) => HomeScreen(
+          toggleTheme: () => themeController.toggleDarkMode(true),
+          themeMode: themeController.themeMode,
+        ),
         "/idioma": (context) => const IdiomaScreen(),
-        "/configuracionBluetooth": (context) => ConfiguracionBluetoothScreen(),
+        "/configuracionBluetooth": (context) =>
+            ConfiguracionBluetoothScreen(),
         "/configAvanzada": (context) => const ConfigAvanzadaScreen(),
-        "/configTeclado":
-            (context) => ConfigTecladoScreen(controller: _controlController),
+        "/configTeclado": (context) =>
+            ConfigTecladoScreen(controller: _controlController),
         "/themeConfig": (context) => const ThemeScreen(),
-        "/splash_denegate": (context) => const SplashConexionDenegateScreen(),
+        "/splash_denegate": (context) =>
+        const SplashConexionDenegateScreen(),
         "/textSize": (context) => const TextSizeScreen(),
         "/acercaDe": (context) => const AcercadeScreen(),
         "/conexionPw": (context) => const ConexionpwScreen(),
-
         "/splash_confirmacion": (context) {
           final args =
-              ModalRoute.of(context)!.settings.arguments
-                  as Map<String, dynamic>;
+          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return SplashConexionScreen(
             device: args['device'] as BluetoothDevice,
             controller: args['controller'] as ControlController,
           );
         },
-
         "/control": (context) {
-          // Tomamos el dispositivo desde los argumentos o
-          // usamos el que está almacenado en _controlController.connectedDevice
           final settings = ModalRoute.of(context)!.settings;
           final args = settings.arguments;
           BluetoothDevice? device;
@@ -177,11 +182,9 @@ class _MyAppState extends State<MyApp> {
             controller: _controlController,
           );
         },
-
         "/controlConfig": (context) {
           final args =
-              ModalRoute.of(context)!.settings.arguments
-                  as Map<String, dynamic>;
+          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return ControlConfigScreen(
             connectedDevice: args['device'] as BluetoothDevice,
             controller: _controlController,

@@ -19,7 +19,7 @@ class AppLocalizations {
       'language': 'Idioma',
       'settings': 'Configuración',
       'text_size': 'Tamaño del texto',
-      'dark_mode': 'Modo oscuro / Modo claro',
+      'dark_mode': 'Temas',
       'control': 'Teclado',
       'home': 'Inicio',
       'connect': 'Conectar',

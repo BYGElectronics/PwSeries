@@ -1,37 +1,46 @@
 import 'package:flutter/material.dart';
 
+/// Widget de teclado PIN con imágenes para cada tecla.
+/// Notifica cambios parciales con [onPinChange] y la finalización con [onPinComplete].
 class TecladoPinWidget extends StatefulWidget {
-  final Function(String) onPinComplete;
+  /// Llamado cada vez que cambia el PIN (se añade o borra un dígito).
+  final ValueChanged<String>? onPinChange;
 
-  const TecladoPinWidget({Key? key, required this.onPinComplete})
-    : super(key: key);
+  /// Llamado cuando se pulsa la tecla “✓” con el PIN completo.
+  final ValueChanged<String> onPinComplete;
+
+  const TecladoPinWidget({
+    Key? key,
+    required this.onPinComplete,
+    this.onPinChange,
+  }) : super(key: key);
 
   @override
   State<TecladoPinWidget> createState() => _TecladoPinWidgetState();
 }
 
 class _TecladoPinWidgetState extends State<TecladoPinWidget> {
-  String pin = "";
+  String _pin = '';
 
-  void agregarDigito(String digito) {
-    if (pin.length < 6) {
-      setState(() {
-        pin += digito;
-      });
+  static const _maxLength = 6;
+
+  void _agregarDigito(String digito) {
+    if (_pin.length < _maxLength) {
+      setState(() => _pin += digito);
+      widget.onPinChange?.call(_pin);
     }
   }
 
-  void borrarDigito() {
-    if (pin.isNotEmpty) {
-      setState(() {
-        pin = pin.substring(0, pin.length - 1);
-      });
+  void _borrarDigito() {
+    if (_pin.isNotEmpty) {
+      setState(() => _pin = _pin.substring(0, _pin.length - 1));
+      widget.onPinChange?.call(_pin);
     }
   }
 
-  void confirmarPin() {
-    if (pin.isNotEmpty) {
-      widget.onPinComplete(pin);
+  void _confirmarPin() {
+    if (_pin.isNotEmpty) {
+      widget.onPinComplete(_pin);
     }
   }
 
@@ -39,15 +48,17 @@ class _TecladoPinWidgetState extends State<TecladoPinWidget> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 0.01),
+        const SizedBox(height: 8),
 
+        // Preview interno (opcional)
         Text(
-          '•' * pin.length,
+          '•' * _pin.length,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
 
-        const SizedBox(height: 0.01),
+        const SizedBox(height: 8),
         const Divider(thickness: 1, color: Colors.black),
+
         Expanded(
           child: GridView.count(
             crossAxisCount: 3,
@@ -55,7 +66,8 @@ class _TecladoPinWidgetState extends State<TecladoPinWidget> {
             mainAxisSpacing: 10,
             crossAxisSpacing: 20,
             children: [
-              for (var i = 1; i <= 9; i++) _buildTecla('$i'),
+              for (var i = 1; i <= 9; i++)
+                _buildTecla('$i'),
               _buildTecla('X', esBorrar: true),
               _buildTecla('0'),
               _buildTecla('V', esConfirmar: true),
@@ -67,14 +79,14 @@ class _TecladoPinWidgetState extends State<TecladoPinWidget> {
   }
 
   Widget _buildTecla(
-    String valor, {
-    bool esBorrar = false,
-    bool esConfirmar = false,
-  }) {
+      String valor, {
+        bool esBorrar = false,
+        bool esConfirmar = false,
+      }) {
     String rutaImagen;
-    if (valor == 'X') {
+    if (esBorrar) {
       rutaImagen = 'assets/img/tecladoPin/botonCancel.png';
-    } else if (valor == 'V') {
+    } else if (esConfirmar) {
       rutaImagen = 'assets/img/tecladoPin/botonCheck.png';
     } else {
       rutaImagen = 'assets/img/tecladoPin/boton-$valor.png';
@@ -83,11 +95,11 @@ class _TecladoPinWidgetState extends State<TecladoPinWidget> {
     return GestureDetector(
       onTap: () {
         if (esBorrar) {
-          borrarDigito();
+          _borrarDigito();
         } else if (esConfirmar) {
-          confirmarPin();
+          _confirmarPin();
         } else {
-          agregarDigito(valor);
+          _agregarDigito(valor);
         }
       },
       child: Image.asset(rutaImagen, fit: BoxFit.contain),

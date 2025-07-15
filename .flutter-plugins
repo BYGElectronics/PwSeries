@@ -1,10 +1,11 @@
 # This is a generated file; do not edit or check into version control.
+android_intent_plus=/Users/mac/.pub-cache/hosted/pub.dev/android_intent_plus-4.0.3/
 flutter_blue_plus=/Users/mac/.pub-cache/hosted/pub.dev/flutter_blue_plus-1.35.5/
 flutter_blue_plus_android=/Users/mac/.pub-cache/hosted/pub.dev/flutter_blue_plus_android-4.0.5/
 flutter_blue_plus_darwin=/Users/mac/.pub-cache/hosted/pub.dev/flutter_blue_plus_darwin-4.0.1/
 flutter_blue_plus_linux=/Users/mac/.pub-cache/hosted/pub.dev/flutter_blue_plus_linux-3.0.2/
 flutter_blue_plus_web=/Users/mac/.pub-cache/hosted/pub.dev/flutter_blue_plus_web-3.0.1/
-flutter_bluetooth_serial=/Users/mac/Desktop/2025/Software/PW SERIES/pw/lib_plugins/flutter_bluetooth_serial/
+flutter_bluetooth_serial=/Users/mac/Desktop/Aplicación Pw Series/pw/lib_plugins/flutter_bluetooth_serial/
 flutter_sound=/Users/mac/.pub-cache/hosted/pub.dev/flutter_sound-9.28.0/
 flutter_sound_web=/Users/mac/.pub-cache/hosted/pub.dev/flutter_sound_web-9.28.0/
 path_provider=/Users/mac/.pub-cache/hosted/pub.dev/path_provider-2.1.5/

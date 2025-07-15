@@ -114,9 +114,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // El método _buildOptionButton ya no es necesario si solo hay un botón principal.
-  // Puedes eliminarlo o comentarlo si no se usa en ningún otro lugar.
-  /*
+// El método _buildOptionButton ya no es necesario si solo hay un botón principal.
+// Puedes eliminarlo o comentarlo si no se usa en ningún otro lugar.
+/*
   Widget _buildOptionButton({
     required BuildContext context,
     required String imagePath,
@@ -157,10 +157,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   */
 
-  // El método _getLocalizedButtonImage ya no es necesario si solo hay un botón principal
-  // y ese botón no cambia con el idioma. Si el botón principal SÍ cambia, necesitarás esta lógica.
-  // Por ahora, lo comento.
-  /*
+// El método _getLocalizedButtonImage ya no es necesario si solo hay un botón principal
+// y ese botón no cambia con el idioma. Si el botón principal SÍ cambia, necesitarás esta lógica.
+// Por ahora, lo comento.
+/*
   String _getLocalizedButtonImage(String buttonNameBase, String languageCode) {
     String folder = "assets/images/Botones";
     Map<String, Map<String, String>> langConfig = {
