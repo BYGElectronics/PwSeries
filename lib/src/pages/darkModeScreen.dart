@@ -6,6 +6,7 @@ import '../../widgets/drawerMenuWidget.dart';
 import '../../widgets/header_menu_widget.dart';
 import '../../widgets/header_widget.dart';
 import '../Controller/ConfiguracionBluetoothController.dart';
+import '../localization/app_localization.dart';
 import 'package:pw/src/Controller/theme_controller.dart';
 
 class ThemeScreen extends StatelessWidget {
@@ -27,6 +28,7 @@ class _ThemeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Provider.of<ConfiguracionBluetoothController>(context);
     final themeController = Provider.of<ThemeController>(context);
+    final localizer = AppLocalizations.of(context)!;
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
@@ -50,7 +52,7 @@ class _ThemeScreen extends StatelessWidget {
               children: [
                 Center(
                   child: Text(
-                    'Tema App Pw',
+                    localizer.translate('theme_title'),
                     style: TextStyle(
                       fontFamily: 'PWSeriesFont',
                       fontSize: 25,
@@ -68,9 +70,9 @@ class _ThemeScreen extends StatelessWidget {
                     width: 50,
                     height: 50,
                   ),
-                  title: const Text(
-                    'Modo Oscuro',
-                    style: TextStyle(
+                  title: Text(
+                    localizer.translate('theme_dark'),
+                    style: const TextStyle(
                       fontSize: 21,
                       fontFamily: 'Roboto-bold',
                       fontWeight: FontWeight.bold,
@@ -91,9 +93,9 @@ class _ThemeScreen extends StatelessWidget {
                     width: 50,
                     height: 50,
                   ),
-                  title: const Text(
-                    'Modo Claro',
-                    style: TextStyle(
+                  title: Text(
+                    localizer.translate('theme_light'),
+                    style: const TextStyle(
                       fontSize: 21,
                       fontFamily: 'Roboto-bold',
                       fontWeight: FontWeight.bold,
@@ -114,9 +116,9 @@ class _ThemeScreen extends StatelessWidget {
                     width: 50,
                     height: 50,
                   ),
-                  title: const Text(
-                    'Sistema',
-                    style: TextStyle(
+                  title: Text(
+                    localizer.translate('theme_system'),
+                    style: const TextStyle(
                       fontSize: 21,
                       fontFamily: 'Roboto-bold',
                       fontWeight: FontWeight.bold,
@@ -125,7 +127,7 @@ class _ThemeScreen extends StatelessWidget {
                   onTap: () {
                     themeController.setThemeMode(ThemeMode.system);
                     Navigator.of(context).pop();
-                    Navigator.pushNamed(context, '/configAvanzada');
+                    Navigator.pushNamed(context, '/control');
                   },
                 ),
               ],

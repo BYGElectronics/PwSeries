@@ -22,7 +22,7 @@ class HeaderMenuWidget extends StatelessWidget {
         children: [
           // Fondo del header
           Image.asset(
-            'assets/img/header/header.png',
+            'assets/images/header.png',
             width: screenWidth,
             height: headerHeight,
             fit: BoxFit.cover,

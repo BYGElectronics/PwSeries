@@ -401,6 +401,8 @@ class ControlController extends ChangeNotifier {
     requestSystemStatus();
   }
 
+
+
   /// === AUXILIAR ===
   // Activa la salida Auxiliar (Luces/Aux) con el frame [0xAA, 0x14, 0x08, 0x44, 0xCC, 0xF8, 0xFF]
   void activateAux() {
@@ -892,6 +894,23 @@ class ControlController extends ChangeNotifier {
     debugPrint("⏳ Esperar 30 segundos para el autoajuste PA.");
     requestSystemStatus();
   }
+
+  /// === Sincronización App → BTPW ===
+  void sendSyncAppToPw() {
+    final List<int> frame = [
+      0xAA, // Header
+      0x14, // Comando general
+      0x45, // Función (sync)
+      0x44, // Payload
+      0x3F, // CRC High byte
+      0x68, // CRC Low byte
+      0xFF, // Footer
+    ];
+    sendCommand(frame);
+    debugPrint("📤 Protocolo App → BTPW enviado: ${frame.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}");
+    requestSystemStatus(); // opcional: refresca estado luego de enviar
+  }
+
 
   /// ===Desconectar Dispositivo===
   Future<void> disconnectDevice() async {

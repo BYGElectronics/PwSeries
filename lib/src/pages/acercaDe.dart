@@ -70,7 +70,7 @@ class AcercadeScreen extends StatelessWidget {
                           // Título "Acerca De"
                           Center(
                             child: Text(
-                              localizer.translate('acercaDe'),
+                              localizer.translate('acerca_de'),
                               style: TextStyle(
                                 fontFamily: 'PWSeriesFont',
                                 fontSize: 27,

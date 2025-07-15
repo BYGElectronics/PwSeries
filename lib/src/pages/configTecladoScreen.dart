@@ -4,10 +4,12 @@ import 'package:provider/provider.dart';
 import '../../widgets/drawerMenuWidget.dart';
 import '../../widgets/header_menu_widget.dart';
 import '../Controller/control_controller.dart';
+import '../localization/app_localization.dart';
 
 class ConfigTecladoScreen extends StatelessWidget {
   const ConfigTecladoScreen({Key? key, required this.controller})
-    : super(key: key);
+      : super(key: key);
+
   final ControlController controller;
 
   @override
@@ -31,6 +33,7 @@ class _ConfigTecladoView extends StatelessWidget {
     final controller = Provider.of<ControlController>(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final theme = Theme.of(context);
+    final localizer = AppLocalizations.of(context)!;
     final bool isConnected = controller.connectedDevice != null;
 
     return Scaffold(
@@ -54,7 +57,7 @@ class _ConfigTecladoView extends StatelessWidget {
               children: [
                 Center(
                   child: Text(
-                    'Configuración Teclado',
+                    localizer.translate('config_teclado'),
                     style: TextStyle(
                       fontFamily: 'PWSeriesFont',
                       fontSize: 25,
@@ -70,10 +73,10 @@ class _ConfigTecladoView extends StatelessWidget {
                   context,
                   enabled: isConnected,
                   image: 'assets/img/botones/PA.png',
-                  label: 'Autoajuste PA',
+                  label: localizer.translate('autoajuste_pa'),
                   onTap: () {
                     controller.autoAdjustPA();
-                    _showMessage(context, '⏳ Autoajuste PA iniciado');
+                    _showMessage(context, '⏳ ${localizer.translate('msg_autoajuste_pa')}');
                   },
                 ),
 
@@ -83,10 +86,10 @@ class _ConfigTecladoView extends StatelessWidget {
                   context,
                   enabled: isConnected,
                   image: 'assets/img/botones/sincronizacion.png',
-                  label: 'Sincronizar Luces y Sirenas',
+                  label: localizer.translate('sincronizar_luces'),
                   onTap: () {
                     controller.syncLightsWithSiren();
-                    _showMessage(context, '🔄 Sincronización iniciada');
+                    _showMessage(context, '🔄 ${localizer.translate('msg_sincronizacion')}');
                   },
                 ),
 
@@ -96,10 +99,10 @@ class _ConfigTecladoView extends StatelessWidget {
                   context,
                   enabled: isConnected,
                   image: 'assets/img/botones/cambioHorn.png',
-                  label: 'Cambio Horn',
+                  label: localizer.translate('cambio_horn'),
                   onTap: () {
                     controller.changeHornTone();
-                    _showMessage(context, '🎺 Tono Horn cambiado');
+                    _showMessage(context, '🎺 ${localizer.translate('msg_cambio_horn')}');
                   },
                 ),
 
@@ -109,12 +112,27 @@ class _ConfigTecladoView extends StatelessWidget {
                   context,
                   enabled: isConnected,
                   image: 'assets/img/botones/luces-aux.png',
-                  label: 'Auxiliar / Luces',
+                  label: localizer.translate('aux_luces'),
                   onTap: () {
                     controller.switchAuxLights();
-                    _showMessage(context, '💡 Modo Aux/Luces cambiado');
+                    _showMessage(context, '💡 ${localizer.translate('msg_aux_luces')}');
                   },
                 ),
+
+                const SizedBox(height: 20),
+
+                _customTile(
+                  context,
+                  enabled: isConnected,
+                  image: 'assets/img/botones/sync_pw.png',
+                  label: localizer.translate('sincronizar_pw'),
+                  onTap: () {
+                    controller.sendSyncAppToPw();
+                    _showMessage(context, '🔄 ${localizer.translate('msg_sincronizacionpw')}');
+                  },
+                ),
+
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -124,13 +142,15 @@ class _ConfigTecladoView extends StatelessWidget {
   }
 
   Widget _customTile(
-    BuildContext context, {
-    required bool enabled,
-    required String image,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+      BuildContext context, {
+        required bool enabled,
+        required String image,
+        required String label,
+        required VoidCallback onTap,
+      }) {
     final theme = Theme.of(context);
+    final localizer = AppLocalizations.of(context)!;
+
     return ListTile(
       leading: Image.asset(image, width: 80, height: 80),
       title: Text(
@@ -144,7 +164,7 @@ class _ConfigTecladoView extends StatelessWidget {
       enabled: enabled,
       onTap: () {
         if (!enabled) {
-          _showMessage(context, '❗ Dispositivo no conectado');
+          _showMessage(context, '❗ ${localizer.translate('dispositivo_no_conectado')}');
         } else {
           onTap();
         }

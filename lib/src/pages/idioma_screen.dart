@@ -1,19 +1,18 @@
-// lib/src/pages/idioma_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../widgets/header_menu_widget.dart';
 import '../../widgets/drawerMenuWidget.dart';
 import '../Controller/idioma_controller.dart';
+import '../localization/app_localization.dart';
 
 class IdiomaScreen extends StatelessWidget {
   const IdiomaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Capturamos el MediaQuery original para forzar textScaleFactor
     final mq = MediaQuery.of(context);
+    final localizer = AppLocalizations.of(context)!;
 
     return MediaQuery(
       data: mq.copyWith(textScaleFactor: 1.0),
@@ -36,49 +35,55 @@ class IdiomaScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: Text(
-                      'Idioma',
-                      style: const TextStyle(
-                        fontFamily: 'PWSeriesFont',
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Column(
+                      children: [
+                        Text(
+                          localizer.translate('idioma'),
+                          style: const TextStyle(
+                            fontFamily: 'PWSeriesFont',
+                            fontSize: 25,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          height: 2,
+                          width: 500,
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 20),
 
-                  // ► Español
                   _idiomaTile(
                     context,
                     image: 'assets/img/iconos/espanol.png',
-                    label: 'Español',
+                    label: localizer.translate('idioma_es'),
                     idiomaCode: 'es',
                   ),
                   const SizedBox(height: 20),
 
-                  // ► Francés
                   _idiomaTile(
                     context,
                     image: 'assets/img/iconos/frances.png',
-                    label: 'Français',
+                    label: localizer.translate('idioma_fr'),
                     idiomaCode: 'fr',
                   ),
                   const SizedBox(height: 20),
 
-                  // ► Inglés
                   _idiomaTile(
                     context,
                     image: 'assets/img/iconos/ingles.png',
-                    label: 'English',
+                    label: localizer.translate('idioma_en'),
                     idiomaCode: 'en',
                   ),
                   const SizedBox(height: 20),
 
-                  // ► Portugués
                   _idiomaTile(
                     context,
                     image: 'assets/img/iconos/portugues.png',
-                    label: 'Português',
+                    label: localizer.translate('idioma_pt'),
                     idiomaCode: 'pt',
                   ),
                 ],
@@ -103,10 +108,8 @@ class IdiomaScreen extends StatelessWidget {
         style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
       ),
       onTap: () {
-        // Cambiamos el idioma
         Provider.of<IdiomaController>(context, listen: false)
             .cambiarIdioma(idiomaCode);
-        // Volvemos a ControlScreen
         Navigator.pushNamedAndRemoveUntil(context, '/control', (_) => false);
       },
     );

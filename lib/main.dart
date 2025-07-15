@@ -59,6 +59,11 @@ void main() async {
           },
         ),
 
+        ChangeNotifierProvider(
+          create: (_) => IdiomaController(),
+          child: const MyApp(),
+        ),
+
         // Tu controlador de control (BLE, PTT, etc.)
         ChangeNotifierProvider<ControlController>.value(
           value: _controlController,
@@ -98,7 +103,7 @@ class _MyAppState extends State<MyApp> {
       // =============================
       //   LOCALIZACIÓN / IDIOMA
       // =============================
-      locale: idiomaController.locale,
+      locale: Provider.of<IdiomaController>(context).locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
 

@@ -30,7 +30,7 @@ class ConfiguracionBluetoothController extends ChangeNotifier {
   Timer? _scanTimer;
 
   /// PIN que ve el usuario (máscara)
-  final String pinMask = "123456";
+  final String pinMask = "9459";
 
   /// Clave real para emparejar Classic (nunca en UI)
   final String pinReal = "1865";

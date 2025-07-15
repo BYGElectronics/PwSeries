@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Widget de teclado PIN con imágenes para cada tecla.
-/// Notifica cambios parciales con [onPinChange] y la finalización con [onPinComplete].
 class TecladoPinWidget extends StatefulWidget {
-  /// Llamado cada vez que cambia el PIN (se añade o borra un dígito).
   final ValueChanged<String>? onPinChange;
-
-  /// Llamado cuando se pulsa la tecla “✓” con el PIN completo.
   final ValueChanged<String> onPinComplete;
 
   const TecladoPinWidget({
@@ -21,7 +16,6 @@ class TecladoPinWidget extends StatefulWidget {
 
 class _TecladoPinWidgetState extends State<TecladoPinWidget> {
   String _pin = '';
-
   static const _maxLength = 6;
 
   void _agregarDigito(String digito) {
@@ -46,40 +40,58 @@ class _TecladoPinWidgetState extends State<TecladoPinWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 8),
+    return LayoutBuilder(builder: (context, constraints) {
+      final double availableHeight = constraints.maxHeight;
+      final double buttonSize = availableHeight / 6; // Ajuste responsivo vertical
 
-        // Preview interno (opcional)
-        Text(
-          '•' * _pin.length,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
+      final List<String> teclas = [
+        '1', '2', '3',
+        '4', '5', '6',
+        '7', '8', '9',
+        'X', '0', 'V',
+      ];
 
-        const SizedBox(height: 8),
-        const Divider(thickness: 1, color: Colors.black),
-
-        Expanded(
-          child: GridView.count(
-            crossAxisCount: 3,
-            padding: const EdgeInsets.all(40),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 20,
-            children: [
-              for (var i = 1; i <= 9; i++)
-                _buildTecla('$i'),
-              _buildTecla('X', esBorrar: true),
-              _buildTecla('0'),
-              _buildTecla('V', esConfirmar: true),
-            ],
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          Text(
+            '•' * _pin.length,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-        ),
-      ],
-    );
+          const SizedBox(height: 8),
+          const Divider(thickness: 1, color: Colors.black),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: buttonSize * 5 + 20,
+            child: GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 49),
+              itemCount: teclas.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 22,
+                mainAxisSpacing: 15,
+              ),
+              itemBuilder: (context, index) {
+                final valor = teclas[index];
+                return _buildTecla(
+                  valor,
+                  size: buttonSize,
+                  esBorrar: valor == 'X',
+                  esConfirmar: valor == 'V',
+                );
+              },
+            ),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _buildTecla(
       String valor, {
+        required double size,
         bool esBorrar = false,
         bool esConfirmar = false,
       }) {
@@ -102,7 +114,12 @@ class _TecladoPinWidgetState extends State<TecladoPinWidget> {
           _agregarDigito(valor);
         }
       },
-      child: Image.asset(rutaImagen, fit: BoxFit.contain),
+      child: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        child: Image.asset(rutaImagen, fit: BoxFit.contain),
+      ),
     );
   }
 }
